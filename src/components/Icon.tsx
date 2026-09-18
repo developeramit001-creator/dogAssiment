@@ -1,0 +1,2 @@
+import React from 'react'; import {Text,TextStyle} from 'react-native';
+export function Icon({name,size=22,color='#2F2A27'}:{name:string;size?:number;color?:string}){const map:Record<string,string>={paw:'🐾',heart:'♥',heartOutline:'♡',search:'⌕',filter:'☷',back:'‹',wifi:'◉',offline:'○',settings:'⚙',sync:'↻',home:'⌂',close:'×',chevron:'›',star:'★',info:'ⓘ',refresh:'↻',check:'✓',cloud:'☁'}; const style:TextStyle={fontSize:size,color,fontWeight:'700',lineHeight:size+4}; return <Text style={style}>{map[name]??'•'}</Text>;}

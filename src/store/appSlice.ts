@@ -1,0 +1,11 @@
+import {createSlice,PayloadAction} from '@reduxjs/toolkit';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import {EMPTY_FILTERS,FilterState} from '../types/dog';
+const FAV_KEY='tripare:favorites'; const ONBOARD_KEY='tripare:onboarded';
+type State={favorites:string[];filters:FilterState;onboarded:boolean};
+const initialState:State={favorites:[],filters:EMPTY_FILTERS,onboarded:false};
+const slice=createSlice({name:'app',initialState,reducers:{setFavorites:(s,a:PayloadAction<string[]>)=>{s.favorites=a.payload},toggleFavorite:(s,a:PayloadAction<string>)=>{s.favorites=s.favorites.includes(a.payload)?s.favorites.filter(x=>x!==a.payload):[...s.favorites,a.payload]},setFilters:(s,a:PayloadAction<FilterState>)=>{s.filters=a.payload},setOnboarded:(s,a:PayloadAction<boolean>)=>{s.onboarded=a.payload},resetFilters:s=>{s.filters={...EMPTY_FILTERS,groups:[],sizes:[],coats:[]}}}});
+export const {setFavorites,toggleFavorite,setFilters,setOnboarded,resetFilters}=slice.actions; export default slice.reducer;
+export const hydrateApp=()=>async(dispatch:any)=>{try{const [f,o]=await Promise.all([AsyncStorage.getItem(FAV_KEY),AsyncStorage.getItem(ONBOARD_KEY)]); if(f)dispatch(setFavorites(JSON.parse(f))); if(o)dispatch(setOnboarded(o==='1'));}catch{}};
+export const persistFavorites=(favorites:string[])=>async()=>{await AsyncStorage.setItem(FAV_KEY,JSON.stringify(favorites));};
+export const persistOnboarded=()=>async()=>{await AsyncStorage.setItem(ONBOARD_KEY,'1');};

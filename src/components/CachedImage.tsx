@@ -1,0 +1,2 @@
+import React,{useEffect,useState} from 'react'; import {Image,ImageProps} from 'react-native'; import {cacheImage,cachedPath} from '../utils/imageCache';
+export function CachedImage({uri,...props}:{uri?:string}&Omit<ImageProps,'source'>){const [source,setSource]=useState(uri); useEffect(()=>{let active=true; if(uri){cachedPath(uri).then(p=>{if(active&&p)setSource(p); else if(active) cacheImage(uri).then(x=>active&&setSource(x));});} return()=>{active=false};},[uri]); return <Image {...props} source={source?{uri:source}:undefined}/>}
