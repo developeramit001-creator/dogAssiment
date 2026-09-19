@@ -4,7 +4,7 @@ import {
   PayloadAction,
 } from '@reduxjs/toolkit';
 
-import {Breed, Group} from '../types/dog';
+import { Breed, Group } from '../types/dog';
 
 export const breedAdapter = createEntityAdapter<Breed>();
 export const groupAdapter = createEntityAdapter<Group>();
@@ -43,12 +43,7 @@ const slice = createSlice({
   },
 });
 
-export const {
-  setBreeds,
-  setBreed,
-  setGroups,
-  clearCache,
-} = slice.actions;
+export const { setBreeds, setBreed, setGroups, clearCache } = slice.actions;
 
 export default slice.reducer;
 
@@ -61,8 +56,8 @@ const groupSelectors = groupAdapter.getSelectors(
   (state: CacheState) => state.groups,
 );
 
-export const selectAllBreeds = (state: {cache: CacheState}) =>
+export const selectAllBreeds = (state: { cache: CacheState }) =>
   breedSelectors.selectAll(state.cache);
 
-export const selectAllGroups = (state: {cache: CacheState}) =>
+export const selectAllGroups = (state: { cache: CacheState }) =>
   groupSelectors.selectAll(state.cache);

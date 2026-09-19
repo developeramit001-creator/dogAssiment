@@ -1,8 +1,359 @@
-import React,{useEffect,useMemo,useState} from 'react'; import {Pressable,ScrollView,StyleSheet,Text,View} from 'react-native'; import {useSafeAreaInsets} from 'react-native-safe-area-context'; import {NativeStackScreenProps} from '@react-navigation/native-stack'; import {colors} from '../theme/colors'; import {RootStackParamList} from '../navigation/types'; import {useAppDispatch,useAppSelector} from '../store/hooks'; import {selectAllBreeds} from '../store/cacheSlice'; import {toggleFavorite,persistFavorites} from '../store/appSlice'; import {useGetBreedByIdQuery} from '../api/dogApi'; import {refreshBreed} from '../store/syncService'; import {CachedImage} from '../components/CachedImage'; import {Card,Scale} from '../components/UI'; import {Icon} from '../components/Icon'; import {rangeText,traitKeys,traitLabels} from '../utils/format';
-type P=NativeStackScreenProps<RootStackParamList,'BreedDetail'>;
-export default function BreedDetailScreen({route,navigation}:P){const insets=useSafeAreaInsets(); const dispatch=useAppDispatch(); const cache=useAppSelector(selectAllBreeds).find(b=>b.id===route.params.id); const favorites=useAppSelector(s=>s.app.favorites); const {data,isFetching}=useGetBreedByIdQuery({id:route.params.id}); const breed=data?.data||cache; const [tab,setTab]=useState<'Overview'|'Traits'|'Gallery'>('Overview'); useEffect(()=>{if(data?.data) refreshBreed(route.params.id).catch(()=>{});},[data?.data,route.params.id]); if(!breed)return <View style={styles.center}><Text style={styles.centerTitle}>Breed unavailable</Text><Text style={styles.centerText}>This breed is not in your offline cache.</Text></View>; const a=breed.attributes; const fav=favorites.includes(breed.id); const toggle=()=>{dispatch(toggleFavorite(breed.id));dispatch(persistFavorites(favorites.includes(breed.id)?favorites.filter(x=>x!==breed.id):[...favorites,breed.id]) as never)}; return <View style={[styles.root,{paddingTop:insets.top}]}><ScrollView contentContainerStyle={{paddingBottom:insets.bottom+30}} showsVerticalScrollIndicator={false}><View style={styles.hero}><CachedImage uri={a.images?.[0]?.large||a.images?.[0]?.medium} style={styles.heroImg}/><Pressable onPress={()=>navigation.goBack()} style={styles.circle}><Icon name="back" size={32}/></Pressable><Pressable onPress={toggle} style={[styles.circle,{right:16,left:'auto'}]}><Icon name={fav?'heart':'heartOutline'} size={25} color={fav?colors.coral:colors.text}/></Pressable></View><View style={styles.content}><Text style={styles.name}>{a.name}</Text><Text style={styles.origin}>{[a.origin?.country,a.origin?.region].filter(Boolean).join(' · ')||'Origin not listed'}</Text>{isFetching&&<Text style={styles.refreshing}>Refreshing breed details…</Text>}<View style={styles.tabs}>{(['Overview','Traits','Gallery'] as const).map(t=><Pressable key={t} onPress={()=>setTab(t)} style={[styles.tab,t===tab&&styles.tabActive]}><Text style={[styles.tabText,t===tab&&styles.tabTextActive]}>{t}</Text></Pressable>)}</View>{tab==='Overview'?<Overview a={a}/>:tab==='Traits'?<Traits a={a}/>:<Gallery images={a.images||[]} onOpen={()=>navigation.navigate('Gallery',{id:breed.id})}/>}</View></ScrollView></View>}
-function Overview({a}:any){return <View><Text style={styles.section}>About</Text><Text style={styles.body}>{a.description||'No description available.'}</Text><View style={styles.grid}><Stat title="Life span" value={`${rangeText(a.life)} years`}/><Stat title="Male weight" value={`${rangeText(a.male_weight)} kg`}/><Stat title="Female weight" value={`${rangeText(a.female_weight)} kg`}/><Stat title="Male height" value={`${rangeText(a.male_height)} cm`}/><Stat title="Female height" value={`${rangeText(a.female_height)} cm`}/><Stat title="Hypoallergenic" value={a.hypoallergenic?'Yes':'No'}/></View><Card><Text style={styles.cardTitle}>Origin</Text><Text style={styles.bodySmall}>{[a.origin?.era,a.origin?.region,a.origin?.country].filter(Boolean).join(' · ')||'—'}</Text></Card><Card><Text style={styles.cardTitle}>Coat</Text><Text style={styles.bodySmall}>{[a.coat?.type,a.coat?.length].filter(Boolean).join(' · ')||'—'}</Text><Text style={styles.bodySmall}>{(a.coat?.colors||[]).join(', ')}</Text></Card><Card><Text style={styles.cardTitle}>Also known as</Text><Text style={styles.bodySmall}>{(a.other_names||[]).join(', ')||'No other names listed'}</Text></Card><Card><Text style={styles.cardTitle}>Recognized by</Text><View style={styles.pills}>{(a.recognized_by||[]).map((x:string)=><Text key={x} style={styles.pill}>{x}</Text>)}</View></Card></View>}
-function Stat({title,value}:{title:string;value:string}){return <View style={styles.stat}><Text style={styles.statTitle}>{title}</Text><Text style={styles.statValue}>{value}</Text></View>}
-function Traits({a}:any){const t=a.traits||{};return <View><Text style={styles.section}>Personality & lifestyle</Text><View style={styles.temperament}>{(t.temperament||[]).map((x:string)=><Text key={x} style={styles.temp}>{x}</Text>)}</View>{traitKeys.map(k=>{const v=t[k]; if(typeof v!=='number')return null;const score=k==='exercise_minutes'?Math.min(5,Math.round(v/30)):v;return <View key={k} style={styles.trait}><View style={styles.traitTop}><Text style={styles.traitName}>{traitLabels[k]}</Text><Text style={styles.traitValue}>{k==='exercise_minutes'?`${v} min`:`${v}/5`}</Text></View><Scale value={score}/></View>})}</View>}
-function Gallery({images,onOpen}:{images:any[];onOpen:()=>void}){return <View><Text style={styles.section}>Photo gallery</Text>{images.slice(0,9).map((im:any,i:number)=><Pressable key={im.id} onPress={onOpen} style={styles.photoRow}><CachedImage uri={im.medium||im.thumb||im.url} style={styles.thumb}/><View style={{flex:1}}><Text style={styles.cardTitle}>Photo {i+1}</Text><Text style={styles.bodySmall}>{im.attribution?.author||'Author not provided'}</Text><Text style={styles.bodySmall}>{im.attribution?.license||'License not provided'}</Text></View></Pressable>)}</View>}
-const styles=StyleSheet.create({root:{flex:1,backgroundColor:colors.bg},hero:{height:300,position:'relative'},heroImg:{width:'100%',height:'100%',backgroundColor:colors.cream},circle:{position:'absolute',top:14,left:16,width:46,height:46,borderRadius:23,backgroundColor:'rgba(255,255,255,.92)',alignItems:'center',justifyContent:'center'},content:{marginTop:-24,borderTopLeftRadius:28,borderTopRightRadius:28,backgroundColor:colors.bg,padding:20},name:{fontSize:30,fontWeight:'900',color:colors.text},origin:{color:colors.sage,fontWeight:'800',marginTop:4},refreshing:{fontSize:11,color:colors.muted,marginTop:4},tabs:{flexDirection:'row',marginTop:20,borderBottomWidth:1,borderBottomColor:colors.border},tab:{flex:1,alignItems:'center',paddingBottom:12},tabActive:{borderBottomWidth:3,borderBottomColor:colors.coral},tabText:{color:colors.muted,fontWeight:'800'},tabTextActive:{color:colors.coralDark},section:{fontSize:20,fontWeight:'900',color:colors.text,marginTop:22,marginBottom:10},body:{fontSize:15,lineHeight:23,color:colors.muted},bodySmall:{fontSize:13,lineHeight:19,color:colors.muted},grid:{flexDirection:'row',flexWrap:'wrap',gap:10,marginVertical:16},stat:{width:'48%',backgroundColor:colors.surface,borderRadius:16,padding:13,borderWidth:1,borderColor:colors.border},statTitle:{fontSize:11,color:colors.muted},statValue:{fontSize:14,fontWeight:'900',color:colors.text,marginTop:4},cardTitle:{fontSize:15,fontWeight:'900',color:colors.text,marginBottom:5},pills:{flexDirection:'row',flexWrap:'wrap',gap:7},pill:{paddingHorizontal:10,paddingVertical:7,borderRadius:10,backgroundColor:colors.sageLight,color:colors.sage,fontWeight:'800'},temperament:{flexDirection:'row',flexWrap:'wrap',gap:8},temp:{paddingHorizontal:11,paddingVertical:8,borderRadius:12,backgroundColor:colors.cream,borderWidth:1,borderColor:colors.border,color:colors.text,fontWeight:'700'},trait:{paddingVertical:12,borderBottomWidth:1,borderBottomColor:colors.border},traitTop:{flexDirection:'row',justifyContent:'space-between',marginBottom:7},traitName:{fontWeight:'800',color:colors.text},traitValue:{fontWeight:'900',color:colors.coralDark},photoRow:{backgroundColor:colors.surface,borderWidth:1,borderColor:colors.border,borderRadius:18,padding:10,flexDirection:'row',gap:12,marginBottom:10},thumb:{width:100,height:86,borderRadius:12,backgroundColor:colors.cream},center:{flex:1,alignItems:'center',justifyContent:'center',backgroundColor:colors.bg},centerTitle:{fontSize:20,fontWeight:'900',color:colors.text},centerText:{marginTop:6,color:colors.muted}});
+import React, { useEffect, useMemo, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { colors } from '../theme/colors';
+import { RootStackParamList } from '../navigation/types';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { selectAllBreeds } from '../store/cacheSlice';
+import { toggleFavorite, persistFavorites } from '../store/appSlice';
+import { useGetBreedByIdQuery } from '../api/dogApi';
+import { refreshBreed } from '../store/syncService';
+import { CachedImage } from '../components/CachedImage';
+import { Card, Scale } from '../components/UI';
+import { Icon } from '../components/Icon';
+import { rangeText, traitKeys, traitLabels } from '../utils/format';
+type P = NativeStackScreenProps<RootStackParamList, 'BreedDetail'>;
+export default function BreedDetailScreen({ route, navigation }: P) {
+  const insets = useSafeAreaInsets();
+  const dispatch = useAppDispatch();
+  const cache = useAppSelector(selectAllBreeds).find(
+    b => b.id === route.params.id,
+  );
+  const favorites = useAppSelector(s => s.app.favorites);
+  const { data, isFetching } = useGetBreedByIdQuery({ id: route.params.id });
+  const breed = data?.data || cache;
+  const [tab, setTab] = useState<'Overview' | 'Traits' | 'Gallery'>('Overview');
+  useEffect(() => {
+    if (data?.data) refreshBreed(route.params.id).catch(() => {});
+  }, [data?.data, route.params.id]);
+  if (!breed)
+    return (
+      <View style={styles.center}>
+        <Text style={styles.centerTitle}>Breed unavailable</Text>
+        <Text style={styles.centerText}>
+          This breed is not in your offline cache.
+        </Text>
+      </View>
+    );
+  const a = breed.attributes;
+  const fav = favorites.includes(breed.id);
+  const toggle = () => {
+    dispatch(toggleFavorite(breed.id));
+    dispatch(
+      persistFavorites(
+        favorites.includes(breed.id)
+          ? favorites.filter(x => x !== breed.id)
+          : [...favorites, breed.id],
+      ) as never,
+    );
+  };
+  return (
+    <View style={[styles.root, { paddingTop: insets.top }]}>
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: insets.bottom + 30 }}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.hero}>
+          <CachedImage
+            uri={a.images?.[0]?.large || a.images?.[0]?.medium}
+            style={styles.heroImg}
+          />
+          <Pressable onPress={() => navigation.goBack()} style={styles.circle}>
+            <Icon name="back" size={32} />
+          </Pressable>
+          <Pressable
+            onPress={toggle}
+            style={[styles.circle, { right: 16, left: 'auto' }]}
+          >
+            <Icon
+              name={fav ? 'heart' : 'heartOutline'}
+              size={25}
+              color={fav ? colors.coral : colors.text}
+            />
+          </Pressable>
+        </View>
+        <View style={styles.content}>
+          <Text style={styles.name}>{a.name}</Text>
+          <Text style={styles.origin}>
+            {[a.origin?.country, a.origin?.region]
+              .filter(Boolean)
+              .join(' · ') || 'Origin not listed'}
+          </Text>
+          {isFetching && (
+            <Text style={styles.refreshing}>Refreshing breed details…</Text>
+          )}
+          <View style={styles.tabs}>
+            {(['Overview', 'Traits', 'Gallery'] as const).map(t => (
+              <Pressable
+                key={t}
+                onPress={() => setTab(t)}
+                style={[styles.tab, t === tab && styles.tabActive]}
+              >
+                <Text
+                  style={[styles.tabText, t === tab && styles.tabTextActive]}
+                >
+                  {t}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+          {tab === 'Overview' ? (
+            <Overview a={a} />
+          ) : tab === 'Traits' ? (
+            <Traits a={a} />
+          ) : (
+            <Gallery
+              images={a.images || []}
+              onOpen={() => navigation.navigate('Gallery', { id: breed.id })}
+            />
+          )}
+        </View>
+      </ScrollView>
+    </View>
+  );
+}
+function Overview({ a }: any) {
+  return (
+    <View>
+      <Text style={styles.section}>About</Text>
+      <Text style={styles.body}>
+        {a.description || 'No description available.'}
+      </Text>
+      <View style={styles.grid}>
+        <Stat title="Life span" value={`${rangeText(a.life)} years`} />
+        <Stat title="Male weight" value={`${rangeText(a.male_weight)} kg`} />
+        <Stat
+          title="Female weight"
+          value={`${rangeText(a.female_weight)} kg`}
+        />
+        <Stat title="Male height" value={`${rangeText(a.male_height)} cm`} />
+        <Stat
+          title="Female height"
+          value={`${rangeText(a.female_height)} cm`}
+        />
+        <Stat title="Hypoallergenic" value={a.hypoallergenic ? 'Yes' : 'No'} />
+      </View>
+      <Card>
+        <Text style={styles.cardTitle}>Origin</Text>
+        <Text style={styles.bodySmall}>
+          {[a.origin?.era, a.origin?.region, a.origin?.country]
+            .filter(Boolean)
+            .join(' · ') || '—'}
+        </Text>
+      </Card>
+      <Card>
+        <Text style={styles.cardTitle}>Coat</Text>
+        <Text style={styles.bodySmall}>
+          {[a.coat?.type, a.coat?.length].filter(Boolean).join(' · ') || '—'}
+        </Text>
+        <Text style={styles.bodySmall}>
+          {(a.coat?.colors || []).join(', ')}
+        </Text>
+      </Card>
+      <Card>
+        <Text style={styles.cardTitle}>Also known as</Text>
+        <Text style={styles.bodySmall}>
+          {(a.other_names || []).join(', ') || 'No other names listed'}
+        </Text>
+      </Card>
+      <Card>
+        <Text style={styles.cardTitle}>Recognized by</Text>
+        <View style={styles.pills}>
+          {(a.recognized_by || []).map((x: string) => (
+            <Text key={x} style={styles.pill}>
+              {x}
+            </Text>
+          ))}
+        </View>
+      </Card>
+    </View>
+  );
+}
+function Stat({ title, value }: { title: string; value: string }) {
+  return (
+    <View style={styles.stat}>
+      <Text style={styles.statTitle}>{title}</Text>
+      <Text style={styles.statValue}>{value}</Text>
+    </View>
+  );
+}
+function Traits({ a }: any) {
+  const t = a.traits || {};
+  return (
+    <View>
+      <Text style={styles.section}>Personality & lifestyle</Text>
+      <View style={styles.temperament}>
+        {(t.temperament || []).map((x: string) => (
+          <Text key={x} style={styles.temp}>
+            {x}
+          </Text>
+        ))}
+      </View>
+      {traitKeys.map(k => {
+        const v = t[k];
+        if (typeof v !== 'number') return null;
+        const score =
+          k === 'exercise_minutes' ? Math.min(5, Math.round(v / 30)) : v;
+        return (
+          <View key={k} style={styles.trait}>
+            <View style={styles.traitTop}>
+              <Text style={styles.traitName}>{traitLabels[k]}</Text>
+              <Text style={styles.traitValue}>
+                {k === 'exercise_minutes' ? `${v} min` : `${v}/5`}
+              </Text>
+            </View>
+            <Scale value={score} />
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+function Gallery({ images, onOpen }: { images: any[]; onOpen: () => void }) {
+  return (
+    <View>
+      <Text style={styles.section}>Photo gallery</Text>
+      {images.slice(0, 9).map((im: any, i: number) => (
+        <Pressable key={im.id} onPress={onOpen} style={styles.photoRow}>
+          <CachedImage
+            uri={im.medium || im.thumb || im.url}
+            style={styles.thumb}
+          />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.cardTitle}>Photo {i + 1}</Text>
+            <Text style={styles.bodySmall}>
+              {im.attribution?.author || 'Author not provided'}
+            </Text>
+            <Text style={styles.bodySmall}>
+              {im.attribution?.license || 'License not provided'}
+            </Text>
+          </View>
+        </Pressable>
+      ))}
+    </View>
+  );
+}
+const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: colors.bg },
+  hero: { height: 300, position: 'relative' },
+  heroImg: { width: '100%', height: '100%', backgroundColor: colors.cream },
+  circle: {
+    position: 'absolute',
+    top: 14,
+    left: 16,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: 'rgba(255,255,255,.92)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  content: {
+    marginTop: -24,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    backgroundColor: colors.bg,
+    padding: 20,
+  },
+  name: { fontSize: 30, fontWeight: '900', color: colors.text },
+  origin: { color: colors.sage, fontWeight: '800', marginTop: 4 },
+  refreshing: { fontSize: 11, color: colors.muted, marginTop: 4 },
+  tabs: {
+    flexDirection: 'row',
+    marginTop: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  tab: { flex: 1, alignItems: 'center', paddingBottom: 12 },
+  tabActive: { borderBottomWidth: 3, borderBottomColor: colors.coral },
+  tabText: { color: colors.muted, fontWeight: '800' },
+  tabTextActive: { color: colors.coralDark },
+  section: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: colors.text,
+    marginTop: 22,
+    marginBottom: 10,
+  },
+  body: { fontSize: 15, lineHeight: 23, color: colors.muted },
+  bodySmall: { fontSize: 13, lineHeight: 19, color: colors.muted },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginVertical: 16 },
+  stat: {
+    width: '48%',
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    padding: 13,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  statTitle: { fontSize: 11, color: colors.muted },
+  statValue: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: colors.text,
+    marginTop: 4,
+  },
+  cardTitle: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: colors.text,
+    marginBottom: 5,
+  },
+  pills: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
+  pill: {
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 10,
+    backgroundColor: colors.sageLight,
+    color: colors.sage,
+    fontWeight: '800',
+  },
+  temperament: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  temp: {
+    paddingHorizontal: 11,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: colors.cream,
+    borderWidth: 1,
+    borderColor: colors.border,
+    color: colors.text,
+    fontWeight: '700',
+  },
+  trait: {
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  traitTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 7,
+  },
+  traitName: { fontWeight: '800', color: colors.text },
+  traitValue: { fontWeight: '900', color: colors.coralDark },
+  photoRow: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 18,
+    padding: 10,
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 10,
+  },
+  thumb: {
+    width: 100,
+    height: 86,
+    borderRadius: 12,
+    backgroundColor: colors.cream,
+  },
+  center: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.bg,
+  },
+  centerTitle: { fontSize: 20, fontWeight: '900', color: colors.text },
+  centerText: { marginTop: 6, color: colors.muted },
+});

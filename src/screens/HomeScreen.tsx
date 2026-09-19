@@ -1,3 +1,292 @@
-import React,{useEffect,useMemo,useState} from 'react'; import {FlatList,Pressable,RefreshControl,StyleSheet,Text,TextInput,View} from 'react-native'; import {useSafeAreaInsets} from 'react-native-safe-area-context'; import {useNavigation} from '@react-navigation/native'; import {NativeStackNavigationProp} from '@react-navigation/native-stack'; import {RootStackParamList} from '../navigation/types'; import {colors} from '../theme/colors'; import {useAppDispatch,useAppSelector} from '../store/hooks'; import {selectAllBreeds,selectAllGroups} from '../store/cacheSlice'; import {toggleFavorite,persistFavorites} from '../store/appSlice'; import {syncAll} from '../store/syncService'; import {Icon} from '../components/Icon'; import BreedCard from '../components/BreedCard'; import {OfflineBanner} from '../components/UI'; import ShimmerPlaceholder from '../components/ShimmerPlaceholder'; import {Breed} from '../types/dog'; import {sizeBand} from '../utils/format';
-export default function HomeScreen(){const insets=useSafeAreaInsets(); const nav=useNavigation<NativeStackNavigationProp<RootStackParamList>>(); const dispatch=useAppDispatch(); const breeds=useAppSelector(selectAllBreeds); const groups=useAppSelector(selectAllGroups); const {favorites,filters}=useAppSelector(s=>s.app); const {online,syncing,error}=useAppSelector(s=>s.sync); const [q,setQ]=useState(''); const [debounced,setDebounced]=useState(''); const [refreshing,setRefreshing]=useState(false); useEffect(()=>{const t=setTimeout(()=>setDebounced(q.trim().toLowerCase()),300);return()=>clearTimeout(t)},[q]); const groupMap=useMemo(()=>new Map(groups.map(g=>[g.id,g.attributes.name])),[groups]); const filtered=useMemo(()=>breeds.filter(b=>{const a=b.attributes;const hay=[a.name,...(a.other_names||[])].join(' ').toLowerCase();if(debounced&&!hay.includes(debounced))return false;const g=groupMap.get(b.relationships?.group?.data?.id||'');if(filters.groups.length&&!filters.groups.includes(g||''))return false;if(filters.sizes.length&&!filters.sizes.includes(sizeBand(b)))return false;if(filters.coats.length&&!filters.coats.includes(a.coat?.length||''))return false;if(filters.hypoallergenic!==null&&a.hypoallergenic!==filters.hypoallergenic)return false;if(filters.traitKey){const v=a.traits?.[filters.traitKey];if(typeof v!=='number'||v<filters.traitMin)return false;}return true}),[breeds,groupMap,debounced,filters]); const grouped=useMemo(()=>{const m=new Map<string,Breed[]>();filtered.forEach(b=>{const g=groupMap.get(b.relationships?.group?.data?.id||'')||'Other';if(!m.has(g))m.set(g,[]);m.get(g)!.push(b)});return Array.from(m.entries()).flatMap(([group,items])=>[{type:'header' as const,key:`h-${group}`,group},...items.map(b=>({type:'breed' as const,key:b.id,breed:b,group}))]);},[filtered,groupMap]); const fav=(id:string)=>{dispatch(toggleFavorite(id)); const next=favorites.includes(id)?favorites.filter(x=>x!==id):[...favorites,id]; dispatch(persistFavorites(next) as never);}; const refresh=async()=>{setRefreshing(true);await syncAll();setRefreshing(false)}; return <View style={[styles.root,{paddingTop:insets.top}]}><View style={styles.header}><View><Text style={styles.brand}>Paw<Text style={{color:colors.coral}}>Buddy</Text></Text><Text style={styles.sub}>{breeds.length?`${breeds.length} breeds on your device`:'Building your dog library…'}</Text></View><View style={styles.status}><Icon name={online?'wifi':'offline'} size={18} color={online?colors.sage:colors.danger}/></View></View><OfflineBanner online={online}/>{error&&<View style={styles.error}><Text style={styles.errorText}>{error}</Text><Pressable onPress={refresh}><Text style={styles.retry}>Retry</Text></Pressable></View>}<View style={styles.search}><Icon name="search" size={21} color={colors.muted}/><TextInput value={q} onChangeText={setQ} placeholder="Search breeds or other names…" placeholderTextColor="#A29A93" style={styles.input}/>{q&&<Pressable onPress={()=>setQ('')}><Icon name="close" size={22} color={colors.muted}/></Pressable>}</View><View style={styles.filterRow}><Pressable onPress={()=>nav.navigate('Filter')} style={styles.filter}><Icon name="filter" size={18} color={colors.text}/><Text style={styles.filterText}>Filters</Text></Pressable><Text style={styles.count}>{filtered.length} results</Text></View>{!breeds.length&&syncing?<View style={{padding:16}}>{[1,2,3,4].map(i=><ShimmerPlaceholder key={i} height={120} borderRadius={20} style={{marginBottom:12}}/>)}</View>:<FlatList data={grouped} keyExtractor={x=>x.key} initialNumToRender={10} maxToRenderPerBatch={8} windowSize={7} removeClippedSubviews renderItem={({item})=>item.type==='header'?<Text style={styles.group}>{item.group}</Text>:<BreedCard breed={item.breed} group={item.group} favorite={favorites.includes(item.breed.id)} onFavorite={()=>fav(item.breed.id)} onPress={()=>nav.navigate('BreedDetail',{id:item.breed.id})}/>} contentContainerStyle={{paddingHorizontal:16,paddingBottom:insets.bottom+90}} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.coral}/>} ListEmptyComponent={<View style={styles.empty}><Icon name="paw" size={50} color={colors.peach}/><Text style={styles.emptyTitle}>No breeds found</Text><Text style={styles.emptyText}>Try another search or clear your filters.</Text></View>}/>}</View>}
-const styles=StyleSheet.create({root:{flex:1,backgroundColor:colors.bg},header:{paddingHorizontal:18,paddingVertical:12,flexDirection:'row',justifyContent:'space-between',alignItems:'center'},brand:{fontSize:29,fontWeight:'900',color:colors.text},sub:{fontSize:12,color:colors.muted,marginTop:2},status:{width:42,height:42,borderRadius:21,backgroundColor:colors.surface,borderWidth:1,borderColor:colors.border,alignItems:'center',justifyContent:'center'},error:{marginHorizontal:16,marginBottom:8,padding:11,borderRadius:14,backgroundColor:'#FFF0ED',flexDirection:'row',gap:10},errorText:{flex:1,color:colors.danger,fontSize:12},retry:{color:colors.coralDark,fontWeight:'900'},search:{margin:12,height:50,borderRadius:16,backgroundColor:colors.surface,borderWidth:1,borderColor:colors.border,paddingHorizontal:14,flexDirection:'row',alignItems:'center',gap:8},input:{flex:1,color:colors.text},filterRow:{paddingHorizontal:16,paddingBottom:10,flexDirection:'row',justifyContent:'space-between',alignItems:'center'},filter:{height:40,paddingHorizontal:14,borderRadius:13,backgroundColor:colors.cream,flexDirection:'row',alignItems:'center',gap:7},filterText:{fontWeight:'900',color:colors.text},count:{color:colors.muted,fontSize:12,fontWeight:'800'},group:{fontSize:16,fontWeight:'900',color:colors.sage,marginTop:12,marginBottom:8},empty:{alignItems:'center',paddingTop:80,paddingHorizontal:30},emptyTitle:{fontSize:21,fontWeight:'900',color:colors.text,marginTop:10},emptyText:{textAlign:'center',color:colors.muted,marginTop:6}});
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+  FlatList,
+  Pressable,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../navigation/types';
+import { colors } from '../theme/colors';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { selectAllBreeds, selectAllGroups } from '../store/cacheSlice';
+import { toggleFavorite, persistFavorites } from '../store/appSlice';
+import { syncAll } from '../store/syncService';
+import { Icon } from '../components/Icon';
+import BreedCard from '../components/BreedCard';
+import { OfflineBanner } from '../components/UI';
+import ShimmerPlaceholder from '../components/ShimmerPlaceholder';
+import { Breed } from '../types/dog';
+import { sizeBand } from '../utils/format';
+export default function HomeScreen() {
+  const insets = useSafeAreaInsets();
+  const nav = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const dispatch = useAppDispatch();
+  const breeds = useAppSelector(selectAllBreeds);
+  const groups = useAppSelector(selectAllGroups);
+  const { favorites, filters } = useAppSelector(s => s.app);
+  const { online, syncing, error } = useAppSelector(s => s.sync);
+  const [q, setQ] = useState('');
+  const [debounced, setDebounced] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(q.trim().toLowerCase()), 300);
+    return () => clearTimeout(t);
+  }, [q]);
+  const groupMap = useMemo(
+    () => new Map(groups.map(g => [g.id, g.attributes.name])),
+    [groups],
+  );
+  const filtered = useMemo(
+    () =>
+      breeds.filter(b => {
+        const a = b.attributes;
+        const hay = [a.name, ...(a.other_names || [])].join(' ').toLowerCase();
+        if (debounced && !hay.includes(debounced)) return false;
+        const g = groupMap.get(b.relationships?.group?.data?.id || '');
+        if (filters.groups.length && !filters.groups.includes(g || ''))
+          return false;
+        if (filters.sizes.length && !filters.sizes.includes(sizeBand(b)))
+          return false;
+        if (
+          filters.coats.length &&
+          !filters.coats.includes(a.coat?.length || '')
+        )
+          return false;
+        if (
+          filters.hypoallergenic !== null &&
+          a.hypoallergenic !== filters.hypoallergenic
+        )
+          return false;
+        if (filters.traitKey) {
+          const v = a.traits?.[filters.traitKey];
+          if (typeof v !== 'number' || v < filters.traitMin) return false;
+        }
+        return true;
+      }),
+    [breeds, groupMap, debounced, filters],
+  );
+  const grouped = useMemo(() => {
+    const m = new Map<string, Breed[]>();
+    filtered.forEach(b => {
+      const g = groupMap.get(b.relationships?.group?.data?.id || '') || 'Other';
+      if (!m.has(g)) m.set(g, []);
+      m.get(g)!.push(b);
+    });
+    return Array.from(m.entries()).flatMap(([group, items]) => [
+      { type: 'header' as const, key: `h-${group}`, group },
+      ...items.map(b => ({
+        type: 'breed' as const,
+        key: b.id,
+        breed: b,
+        group,
+      })),
+    ]);
+  }, [filtered, groupMap]);
+  const fav = (id: string) => {
+    dispatch(toggleFavorite(id));
+    const next = favorites.includes(id)
+      ? favorites.filter(x => x !== id)
+      : [...favorites, id];
+    dispatch(persistFavorites(next) as never);
+  };
+  const refresh = async () => {
+    setRefreshing(true);
+    await syncAll();
+    setRefreshing(false);
+  };
+  return (
+    <View style={[styles.root, { paddingTop: insets.top }]}>
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.brand}>
+            Paw<Text style={{ color: colors.coral }}>Buddy</Text>
+          </Text>
+          <Text style={styles.sub}>
+            {breeds.length
+              ? `${breeds.length} breeds on your device`
+              : 'Building your dog library…'}
+          </Text>
+        </View>
+        <View style={styles.status}>
+          <Icon
+            name={online ? 'wifi' : 'offline'}
+            size={18}
+            color={online ? colors.sage : colors.danger}
+          />
+        </View>
+      </View>
+      <OfflineBanner online={online} />
+      {error && (
+        <View style={styles.error}>
+          <Text style={styles.errorText}>{error}</Text>
+          <Pressable onPress={refresh}>
+            <Text style={styles.retry}>Retry</Text>
+          </Pressable>
+        </View>
+      )}
+      <View style={styles.search}>
+        <Icon name="search" size={21} color={colors.muted} />
+        <TextInput
+          value={q}
+          onChangeText={setQ}
+          placeholder="Search breeds or other names…"
+          placeholderTextColor="#A29A93"
+          style={styles.input}
+        />
+        {q && (
+          <Pressable onPress={() => setQ('')}>
+            <Icon name="close" size={22} color={colors.muted} />
+          </Pressable>
+        )}
+      </View>
+      <View style={styles.filterRow}>
+        <Pressable onPress={() => nav.navigate('Filter')} style={styles.filter}>
+          <Icon name="filter" size={18} color={colors.text} />
+          <Text style={styles.filterText}>Filters</Text>
+        </Pressable>
+        <Text style={styles.count}>{filtered.length} results</Text>
+      </View>
+      {!breeds.length && syncing ? (
+        <View style={{ padding: 16 }}>
+          {[1, 2, 3, 4].map(i => (
+            <ShimmerPlaceholder
+              key={i}
+              height={120}
+              borderRadius={20}
+              style={{ marginBottom: 12 }}
+            />
+          ))}
+        </View>
+      ) : (
+        <FlatList
+          data={grouped}
+          keyExtractor={x => x.key}
+          initialNumToRender={10}
+          maxToRenderPerBatch={8}
+          windowSize={7}
+          removeClippedSubviews
+          renderItem={({ item }) =>
+            item.type === 'header' ? (
+              <Text style={styles.group}>{item.group}</Text>
+            ) : (
+              <BreedCard
+                breed={item.breed}
+                group={item.group}
+                favorite={favorites.includes(item.breed.id)}
+                onFavorite={() => fav(item.breed.id)}
+                onPress={() =>
+                  nav.navigate('BreedDetail', { id: item.breed.id })
+                }
+              />
+            )
+          }
+          contentContainerStyle={{
+            paddingHorizontal: 16,
+            paddingBottom: insets.bottom + 90,
+          }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={refresh}
+              tintColor={colors.coral}
+            />
+          }
+          ListEmptyComponent={
+            <View style={styles.empty}>
+              <Icon name="paw" size={50} color={colors.peach} />
+              <Text style={styles.emptyTitle}>No breeds found</Text>
+              <Text style={styles.emptyText}>
+                Try another search or clear your filters.
+              </Text>
+            </View>
+          }
+        />
+      )}
+    </View>
+  );
+}
+const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: colors.bg },
+  header: {
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  brand: { fontSize: 29, fontWeight: '900', color: colors.text },
+  sub: { fontSize: 12, color: colors.muted, marginTop: 2 },
+  status: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  error: {
+    marginHorizontal: 16,
+    marginBottom: 8,
+    padding: 11,
+    borderRadius: 14,
+    backgroundColor: '#FFF0ED',
+    flexDirection: 'row',
+    gap: 10,
+  },
+  errorText: { flex: 1, color: colors.danger, fontSize: 12 },
+  retry: { color: colors.coralDark, fontWeight: '900' },
+  search: {
+    margin: 12,
+    height: 50,
+    borderRadius: 16,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  input: { flex: 1, color: colors.text },
+  filterRow: {
+    paddingHorizontal: 16,
+    paddingBottom: 10,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  filter: {
+    height: 40,
+    paddingHorizontal: 14,
+    borderRadius: 13,
+    backgroundColor: colors.cream,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+  },
+  filterText: { fontWeight: '900', color: colors.text },
+  count: { color: colors.muted, fontSize: 12, fontWeight: '800' },
+  group: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: colors.sage,
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  empty: { alignItems: 'center', paddingTop: 80, paddingHorizontal: 30 },
+  emptyTitle: {
+    fontSize: 21,
+    fontWeight: '900',
+    color: colors.text,
+    marginTop: 10,
+  },
+  emptyText: { textAlign: 'center', color: colors.muted, marginTop: 6 },
+});

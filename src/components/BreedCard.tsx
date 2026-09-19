@@ -1,3 +1,94 @@
-import React from 'react'; import {Image,Pressable,StyleSheet,Text,View} from 'react-native'; import {Breed} from '../types/dog'; import {colors} from '../theme/colors'; import {sizeBand} from '../utils/format'; import {Icon} from './Icon';
-export default function BreedCard({breed,group,favorite,onFavorite,onPress}:{breed:Breed;group?:string;favorite:boolean;onFavorite:()=>void;onPress:()=>void}){const a=breed.attributes; const image=a.images?.[0]?.medium||a.images?.[0]?.thumb; return <Pressable onPress={onPress} style={({pressed})=>[styles.card,pressed&&{opacity:.92}]}><Image source={{uri:image}} style={styles.image}/><View style={styles.info}><View style={styles.row}><Text style={styles.name} numberOfLines={1}>{a.name}</Text><Pressable hitSlop={10} onPress={e=>{e.stopPropagation();onFavorite();}}><Icon name={favorite?'heart':'heartOutline'} size={25} color={favorite?colors.coral:colors.muted}/></Pressable></View><Text style={styles.meta}>{group||sizeBand(breed)} · {a.origin?.country||'Origin unknown'}</Text><View style={styles.tags}><Text style={styles.tag}>{a.coat?.length||'coat unknown'}</Text>{a.hypoallergenic&&<Text style={styles.tag}>hypoallergenic</Text>}</View></View></Pressable>}
-const styles=StyleSheet.create({card:{backgroundColor:colors.surface,borderRadius:20,borderWidth:1,borderColor:colors.border,padding:10,marginBottom:12,flexDirection:'row',gap:12},image:{width:100,height:100,borderRadius:15,backgroundColor:colors.cream},info:{flex:1,paddingTop:2},row:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:6},name:{fontSize:17,fontWeight:'900',color:colors.text,flex:1},meta:{fontSize:12,color:colors.muted,marginTop:5},tags:{flexDirection:'row',gap:6,marginTop:10,flexWrap:'wrap'},tag:{fontSize:11,fontWeight:'800',color:colors.sage,backgroundColor:colors.sageLight,paddingHorizontal:8,paddingVertical:5,borderRadius:9}});
+import React from 'react';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Breed } from '../types/dog';
+import { colors } from '../theme/colors';
+import { sizeBand } from '../utils/format';
+import { Icon } from './Icon';
+export default function BreedCard({
+  breed,
+  group,
+  favorite,
+  onFavorite,
+  onPress,
+}: {
+  breed: Breed;
+  group?: string;
+  favorite: boolean;
+  onFavorite: () => void;
+  onPress: () => void;
+}) {
+  const a = breed.attributes;
+  const image = a.images?.[0]?.medium || a.images?.[0]?.thumb;
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [styles.card, pressed && { opacity: 0.92 }]}
+    >
+      <Image source={{ uri: image }} style={styles.image} />
+      <View style={styles.info}>
+        <View style={styles.row}>
+          <Text style={styles.name} numberOfLines={1}>
+            {a.name}
+          </Text>
+          <Pressable
+            hitSlop={10}
+            onPress={e => {
+              e.stopPropagation();
+              onFavorite();
+            }}
+          >
+            <Icon
+              name={favorite ? 'heart' : 'heartOutline'}
+              size={25}
+              color={favorite ? colors.coral : colors.muted}
+            />
+          </Pressable>
+        </View>
+        <Text style={styles.meta}>
+          {group || sizeBand(breed)} · {a.origin?.country || 'Origin unknown'}
+        </Text>
+        <View style={styles.tags}>
+          <Text style={styles.tag}>{a.coat?.length || 'coat unknown'}</Text>
+          {a.hypoallergenic && <Text style={styles.tag}>hypoallergenic</Text>}
+        </View>
+      </View>
+    </Pressable>
+  );
+}
+const styles = StyleSheet.create({
+  card: {
+    backgroundColor: colors.surface,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: 10,
+    marginBottom: 12,
+    flexDirection: 'row',
+    gap: 12,
+  },
+  image: {
+    width: 100,
+    height: 100,
+    borderRadius: 15,
+    backgroundColor: colors.cream,
+  },
+  info: { flex: 1, paddingTop: 2 },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 6,
+  },
+  name: { fontSize: 17, fontWeight: '900', color: colors.text, flex: 1 },
+  meta: { fontSize: 12, color: colors.muted, marginTop: 5 },
+  tags: { flexDirection: 'row', gap: 6, marginTop: 10, flexWrap: 'wrap' },
+  tag: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: colors.sage,
+    backgroundColor: colors.sageLight,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 9,
+  },
+});
