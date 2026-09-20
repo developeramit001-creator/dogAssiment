@@ -1,0 +1,25 @@
+{
+  "migIndex": 1,
+  "data": [
+    {
+      "path": "assets/fonts/Caveat-Regular.ttf",
+      "sha1": "ff659a6c9d88702bf0b06725af690393735ccf5b"
+    },
+    {
+      "path": "assets/fonts/Nunito-Bold.ttf",
+      "sha1": "dff8c08468b1063ea7199d68f6ea0cc75d510b97"
+    },
+    {
+      "path": "assets/fonts/Nunito-ExtraBold.ttf",
+      "sha1": "cdcb3b0bfcd499a2ff17643291c12d3b0a49d839"
+    },
+    {
+      "path": "assets/fonts/Nunito-Regular.ttf",
+      "sha1": "59e081f2c9fe364d08804db9069d264295b995d0"
+    },
+    {
+      "path": "assets/fonts/Nunito-SemiBold.ttf",
+      "sha1": "c94ad63195d9ed38a572c313e494cdad987b21a3"
+    }
+  ]
+}

@@ -1,94 +1,275 @@
-import React from 'react';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+
+import React, { useEffect, useRef } from 'react';
+import {
+  Animated,
+  Image,
+  Pressable,
+  Text,
+  View,
+} from 'react-native';
+
 import { Breed } from '../types/dog';
-import { colors } from '../theme/colors';
+import { theme } from '../theme/theme';
 import { sizeBand } from '../utils/format';
 import { Icon } from './Icon';
+
+type BreedCardProps = {
+  breed: Breed;
+  group?: string;
+  favorite: boolean;
+  onFavorite: () => void;
+  onPress: () => void;
+};
+
 export default function BreedCard({
   breed,
   group,
   favorite,
   onFavorite,
   onPress,
-}: {
-  breed: Breed;
-  group?: string;
-  favorite: boolean;
-  onFavorite: () => void;
-  onPress: () => void;
-}) {
-  const a = breed.attributes;
-  const image = a.images?.[0]?.medium || a.images?.[0]?.thumb;
+}: BreedCardProps) {
+  const scale = useRef(
+    new Animated.Value(1),
+  ).current;
+
+  const rotate = useRef(
+    new Animated.Value(0),
+  ).current;
+
+  const attributes = breed.attributes;
+
+  const image =
+    attributes.images?.[0]?.medium ||
+    attributes.images?.[0]?.thumb;
+
+  useEffect(() => {
+    if (!favorite) {
+      scale.setValue(1);
+      rotate.setValue(0);
+      return;
+    }
+
+    scale.setValue(0.7);
+    rotate.setValue(0);
+
+    Animated.parallel([
+      Animated.sequence([
+        Animated.spring(scale, {
+          toValue: 1.2,
+          friction: 4,
+          tension: 160,
+          useNativeDriver: true,
+        }),
+        Animated.spring(scale, {
+          toValue: 1,
+          friction: 5,
+          tension: 130,
+          useNativeDriver: true,
+        }),
+      ]),
+
+      Animated.sequence([
+        Animated.timing(rotate, {
+          toValue: 1,
+          duration: 100,
+          useNativeDriver: true,
+        }),
+        Animated.timing(rotate, {
+          toValue: -1,
+          duration: 100,
+          useNativeDriver: true,
+        }),
+        Animated.timing(rotate, {
+          toValue: 0,
+          duration: 100,
+          useNativeDriver: true,
+        }),
+      ]),
+    ]).start();
+  }, [favorite, rotate, scale]);
+
+  const rotateInterpolation = rotate.interpolate({
+    inputRange: [-1, 0, 1],
+    outputRange: ['-10deg', '0deg', '10deg'],
+  });
+
   return (
     <Pressable
       onPress={onPress}
-      style={({ pressed }) => [styles.card, pressed && { opacity: 0.92 }]}
+      style={({ pressed }) => [
+        {
+          backgroundColor: theme.colors.surface,
+          borderRadius: theme.radius.lg,
+          borderWidth: 1,
+          borderColor: theme.colors.border,
+          padding: theme.spacing.sm,
+          marginBottom: theme.spacing.sm,
+          flexDirection: 'row',
+          gap: theme.spacing.sm,
+          ...theme.cardStyle,
+        },
+        pressed && {
+          opacity: 0.9,
+          transform: [{ scale: 0.99 }],
+        },
+      ]}
+      accessibilityRole="button"
+      accessibilityLabel={`Open ${attributes.name} details`}
     >
-      <Image source={{ uri: image }} style={styles.image} />
-      <View style={styles.info}>
-        <View style={styles.row}>
-          <Text style={styles.name} numberOfLines={1}>
-            {a.name}
+      <Image
+        source={image ? { uri: image } : undefined}
+        style={{
+          width: 92,
+          height: 92,
+          borderRadius: theme.radius.md,
+          backgroundColor: theme.colors.cream,
+        }}
+        resizeMode="cover"
+      />
+
+      <View
+        style={{
+          flex: 1,
+          paddingTop: 1,
+        }}
+      >
+        <View
+          style={{
+
+            minHeight: 30,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: theme.spacing.xs,
+          }}
+        >
+          <Text
+            style={{
+              fontFamily: theme.fonts.semibold,
+              fontSize: theme.typography.title.fontSize,
+              lineHeight: theme.typography.title.lineHeight,
+              flex: 1,
+              color: theme.colors.text,
+              letterSpacing: -0.15,
+            }}
+            numberOfLines={1}
+          >
+            {attributes.name}
           </Text>
+
+
+
           <Pressable
-            hitSlop={10}
-            onPress={e => {
-              e.stopPropagation();
+            hitSlop={8}
+            onPress={event => {
+              event.stopPropagation();
               onFavorite();
             }}
+            accessibilityRole="button"
+            accessibilityLabel={
+              favorite
+                ? `Remove ${attributes.name} from favorites`
+                : `Add ${attributes.name} to favorites`
+            }
+            style={({ pressed }) => [
+              {
+                width: 34,
+                height: 34,
+                borderRadius: 17,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: favorite
+                  ? theme.colors.sageLight
+                  : theme.colors.cream,
+              },
+              pressed && {
+                opacity: 0.7,
+                transform: [{ scale: 0.92 }],
+              },
+            ]}
           >
-            <Icon
-              name={favorite ? 'heart' : 'heartOutline'}
-              size={25}
-              color={favorite ? colors.coral : colors.muted}
-            />
+            <Animated.View
+              style={{
+                width: 22,
+                height: 22,
+                alignItems: 'center',
+                justifyContent: 'center',
+                transform: [
+                  { scale },
+                  { rotate: rotateInterpolation },
+                ],
+              }}
+            >
+              <Icon
+                name="heart"
+                size={favorite ? 18 : 20}
+                color={
+                  favorite
+                    ? theme.colors.coral
+                    : theme.colors.muted
+                }
+                filled={favorite}
+                strokeWidth={2.2}
+              />
+            </Animated.View>
           </Pressable>
         </View>
-        <Text style={styles.meta}>
-          {group || sizeBand(breed)} · {a.origin?.country || 'Origin unknown'}
+
+        <Text
+          style={{
+            ...theme.typography.caption,
+            color: theme.colors.muted,
+
+          }}
+          numberOfLines={1}
+        >
+          {group || sizeBand(breed)} ·{' '}
+          {attributes.origin?.country ||
+            'Origin unknown'}
         </Text>
-        <View style={styles.tags}>
-          <Text style={styles.tag}>{a.coat?.length || 'coat unknown'}</Text>
-          {a.hypoallergenic && <Text style={styles.tag}>hypoallergenic</Text>}
+
+        <View
+          style={{
+            flexDirection: 'row',
+            gap: theme.spacing.xs,
+            marginTop: theme.spacing.sm,
+            flexWrap: 'wrap',
+          }}
+        >
+          <Text
+            style={{
+              ...theme.typography.labelSmall,
+              fontSize: 10,
+              lineHeight: 14,
+              color: theme.colors.sage,
+              backgroundColor: theme.colors.sageLight,
+              paddingHorizontal: theme.spacing.sm,
+              paddingVertical: theme.spacing.xs,
+              borderRadius: theme.radius.sm,
+            }}
+          >
+            {attributes.coat?.length ||
+              'coat unknown'}
+          </Text>
+
+          {attributes.hypoallergenic && (
+            <Text
+              style={{
+                ...theme.typography.labelSmall,
+                fontSize: 10,
+                lineHeight: 14,
+                color: theme.colors.sage,
+                backgroundColor: theme.colors.sageLight,
+                paddingHorizontal: theme.spacing.sm,
+                paddingVertical: theme.spacing.xs,
+                borderRadius: theme.radius.sm,
+              }}
+            >
+              hypoallergenic
+            </Text>
+          )}
         </View>
       </View>
     </Pressable>
   );
 }
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: 10,
-    marginBottom: 12,
-    flexDirection: 'row',
-    gap: 12,
-  },
-  image: {
-    width: 100,
-    height: 100,
-    borderRadius: 15,
-    backgroundColor: colors.cream,
-  },
-  info: { flex: 1, paddingTop: 2 },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 6,
-  },
-  name: { fontSize: 17, fontWeight: '900', color: colors.text, flex: 1 },
-  meta: { fontSize: 12, color: colors.muted, marginTop: 5 },
-  tags: { flexDirection: 'row', gap: 6, marginTop: 10, flexWrap: 'wrap' },
-  tag: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: colors.sage,
-    backgroundColor: colors.sageLight,
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    borderRadius: 9,
-  },
-});

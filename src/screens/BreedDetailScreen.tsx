@@ -1,208 +1,963 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  Animated,
+  Easing,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  Text,
+  View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import NetInfo from '@react-native-community/netinfo';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { colors } from '../theme/colors';
+
+import { theme } from '../theme/theme';
 import { RootStackParamList } from '../navigation/types';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { selectAllBreeds } from '../store/cacheSlice';
 import { toggleFavorite, persistFavorites } from '../store/appSlice';
 import { useGetBreedByIdQuery } from '../api/dogApi';
 import { refreshBreed } from '../store/syncService';
+
 import { CachedImage } from '../components/CachedImage';
 import { Card, Scale } from '../components/UI';
 import { Icon } from '../components/Icon';
+
 import { rangeText, traitKeys, traitLabels } from '../utils/format';
-type P = NativeStackScreenProps<RootStackParamList, 'BreedDetail'>;
-export default function BreedDetailScreen({ route, navigation }: P) {
-  const insets = useSafeAreaInsets();
-  const dispatch = useAppDispatch();
-  const cache = useAppSelector(selectAllBreeds).find(
-    b => b.id === route.params.id,
-  );
-  const favorites = useAppSelector(s => s.app.favorites);
-  const { data, isFetching } = useGetBreedByIdQuery({ id: route.params.id });
-  const breed = data?.data || cache;
-  const [tab, setTab] = useState<'Overview' | 'Traits' | 'Gallery'>('Overview');
-  useEffect(() => {
-    if (data?.data) refreshBreed(route.params.id).catch(() => {});
-  }, [data?.data, route.params.id]);
-  if (!breed)
-    return (
-      <View style={styles.center}>
-        <Text style={styles.centerTitle}>Breed unavailable</Text>
-        <Text style={styles.centerText}>
-          This breed is not in your offline cache.
-        </Text>
-      </View>
-    );
-  const a = breed.attributes;
-  const fav = favorites.includes(breed.id);
-  const toggle = () => {
-    dispatch(toggleFavorite(breed.id));
-    dispatch(
-      persistFavorites(
-        favorites.includes(breed.id)
-          ? favorites.filter(x => x !== breed.id)
-          : [...favorites, breed.id],
-      ) as never,
-    );
+
+type Props = NativeStackScreenProps<
+  RootStackParamList,
+  'BreedDetail'
+>;
+
+type BreedImage = {
+  id?: string | number;
+  large?: string;
+  medium?: string;
+  thumb?: string;
+  url?: string;
+  attribution?: {
+    author?: string;
+    license?: string;
   };
-  return (
-    <View style={[styles.root, { paddingTop: insets.top }]}>
-      <ScrollView
-        contentContainerStyle={{ paddingBottom: insets.bottom + 30 }}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.hero}>
-          <CachedImage
-            uri={a.images?.[0]?.large || a.images?.[0]?.medium}
-            style={styles.heroImg}
+};
+
+type BreedAttributes = {
+  name: string;
+  description?: string;
+  images?: BreedImage[];
+  origin?: {
+    country?: string;
+    region?: string;
+    era?: string;
+  };
+  life?: unknown;
+  male_weight?: unknown;
+  female_weight?: unknown;
+  male_height?: unknown;
+  female_height?: unknown;
+  hypoallergenic?: boolean;
+  coat?: {
+    type?: string;
+    length?: string;
+    colors?: string[];
+  };
+  other_names?: string[];
+  recognized_by?: string[];
+  traits?: Record<string, unknown> & {
+    temperament?: string[];
+  };
+};
+
+type Breed = {
+  id: string;
+  attributes: BreedAttributes;
+};
+
+export default function BreedDetailScreen({
+  route,
+  navigation,
+}: Props) {
+  const dispatch = useAppDispatch();
+
+  const cachedBreed = useAppSelector(selectAllBreeds).find(
+    item => item.id === route.params.id,
+  ) as Breed | undefined;
+
+  const favorites = useAppSelector(
+    state => state.app.favorites,
+  );
+
+  const { data, isFetching, isError, refetch } =
+    useGetBreedByIdQuery({
+      id: route.params.id,
+    });
+
+  const breed = (data?.data || cachedBreed) as
+    | Breed
+    | undefined;
+
+  const [activeTab, setActiveTab] = useState<
+    'Overview' | 'Traits' | 'Gallery'
+  >('Overview');
+
+  const favoriteScale = useRef(
+    new Animated.Value(1),
+  ).current;
+
+  const favoriteRotate = useRef(
+    new Animated.Value(0),
+  ).current;
+
+  useEffect(() => {
+    if (data?.data) {
+      refreshBreed(route.params.id).catch(() => { });
+    }
+  }, [data?.data, route.params.id]);
+
+  useEffect(() => {
+    const unsubscribe = NetInfo.addEventListener(state => {
+      if (state.isConnected && state.isInternetReachable !== false) {
+        refetch();
+        refreshBreed(route.params.id).catch(() => { });
+      }
+    });
+
+    return unsubscribe;
+  }, [refetch, route.params.id]);
+
+  if (!breed) {
+    return (
+      <SafeAreaView
+        // edges={['top', 'bottom']}
+        style={{
+          flex: 1,
+          alignItems: 'center',
+          justifyContent: 'center',
+          paddingHorizontal: theme.spacing.xl,
+          backgroundColor: theme.colors.bg,
+        }}>
+        <View
+          style={{
+            width: 64,
+            height: 64,
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: theme.spacing.lg,
+            borderRadius: 32,
+            backgroundColor: theme.colors.cream,
+          }}>
+          <Icon
+            name="paw"
+            size={28}
+            color={theme.colors.coralDark}
           />
-          <Pressable onPress={() => navigation.goBack()} style={styles.circle}>
-            <Icon name="back" size={32} />
-          </Pressable>
+        </View>
+
+        <Text
+          style={{
+            fontSize: 21,
+            fontFamily: theme.fonts.extraBold,
+            color: theme.colors.text,
+          }}>
+          Breed unavailable
+        </Text>
+
+        <Text
+          style={{
+            marginTop: theme.spacing.sm,
+            textAlign: 'center',
+            fontSize: 13,
+            lineHeight: 20,
+            fontFamily: theme.fonts.regular,
+            color: theme.colors.muted,
+          }}>
+          This breed is not available in your offline cache.
+        </Text>
+
+        <Pressable
+          onPress={() => navigation.goBack()}
+          style={({ pressed }) => ({
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: theme.spacing.sm,
+            marginTop: theme.spacing.xl,
+            paddingHorizontal: theme.spacing.lg,
+            paddingVertical: theme.spacing.md,
+            borderRadius: theme.radius.md,
+            backgroundColor: theme.colors.coral,
+            opacity: pressed ? 0.7 : 1,
+          })}>
+          <Icon
+            name="back"
+            size={18}
+            color={theme.colors.white}
+          />
+
+          <Text
+            style={{
+              fontSize: 13,
+              fontFamily: theme.fonts.semibold,
+              color: theme.colors.white,
+            }}>
+            Go Back
+          </Text>
+        </Pressable>
+      </SafeAreaView>
+    );
+  }
+
+  const attributes = breed.attributes;
+  const isFavorite = favorites.includes(breed.id);
+
+  const animateFavorite = () => {
+    Animated.parallel([
+      Animated.sequence([
+        Animated.timing(favoriteScale, {
+          toValue: 0.78,
+          duration: 90,
+          easing: Easing.out(Easing.ease),
+          useNativeDriver: true,
+        }),
+
+        Animated.spring(favoriteScale, {
+          toValue: 1,
+          friction: 4,
+          tension: 160,
+          useNativeDriver: true,
+        }),
+      ]),
+
+      Animated.sequence([
+        Animated.timing(favoriteRotate, {
+          toValue: 1,
+          duration: 120,
+          easing: Easing.out(Easing.ease),
+          useNativeDriver: true,
+        }),
+
+        Animated.timing(favoriteRotate, {
+          toValue: 0,
+          duration: 180,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ]),
+    ]).start();
+  };
+
+  const handleFavorite = () => {
+    animateFavorite();
+
+    const nextFavorites = isFavorite
+      ? favorites.filter(id => id !== breed.id)
+      : [...favorites, breed.id];
+
+    dispatch(toggleFavorite(breed.id));
+
+    dispatch(persistFavorites(nextFavorites) as never);
+  };
+
+  const favoriteRotation = favoriteRotate.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '-12deg'],
+  });
+
+  return (
+    <SafeAreaView
+      edges={['top', 'bottom']}
+      style={{
+        flex: 1,
+        backgroundColor: theme.colors.bg,
+      }}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isFetching}
+            onRefresh={() => {
+              refetch();
+              refreshBreed(route.params.id).catch(() => { });
+            }}
+            tintColor={theme.colors.coral}
+            colors={[theme.colors.coral]}
+          />
+        }
+        contentContainerStyle={{
+          paddingBottom: theme.spacing.xxl,
+        }}>
+        {/* Hero Section */}
+        <View
+          style={{
+            height: 300,
+            position: 'relative',
+            backgroundColor: theme.colors.cream,
+          }}>
+          <CachedImage
+            uri={
+              attributes.images?.[0]?.large ||
+              attributes.images?.[0]?.medium
+            }
+            style={{
+              width: '100%',
+              height: '100%',
+              backgroundColor: theme.colors.cream,
+            }}
+          />
+
+          {/* Back Button */}
           <Pressable
-            onPress={toggle}
-            style={[styles.circle, { right: 16, left: 'auto' }]}
-          >
+            onPress={() => navigation.goBack()}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+            style={({ pressed }) => ({
+              position: 'absolute',
+              top: theme.spacing.lg,
+              left: theme.spacing.lg,
+              width: 46,
+              height: 46,
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: 23,
+              backgroundColor: 'rgba(255,255,255,0.94)',
+              borderWidth: 1,
+              borderColor: 'rgba(233,222,213,0.8)',
+              opacity: pressed ? 0.7 : 1,
+            })}>
             <Icon
-              name={fav ? 'heart' : 'heartOutline'}
+              name="back"
               size={25}
-              color={fav ? colors.coral : colors.text}
+              color={theme.colors.text}
+              strokeWidth={2.3}
             />
           </Pressable>
+
+          {/* Animated Favorite Button */}
+          <Pressable
+            onPress={handleFavorite}
+            accessibilityRole="button"
+            accessibilityLabel={
+              isFavorite
+                ? 'Remove from favorites'
+                : 'Add to favorites'
+            }
+            style={({ pressed }) => ({
+              position: 'absolute',
+              top: theme.spacing.lg,
+              right: theme.spacing.lg,
+              width: 46,
+              height: 46,
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: 23,
+              backgroundColor: 'rgba(255,255,255,0.94)',
+              borderWidth: 1,
+              borderColor: 'rgba(233,222,213,0.8)',
+              opacity: pressed ? 0.7 : 1,
+            })}>
+            <Animated.View
+              style={{
+                transform: [
+                  {
+                    scale: favoriteScale,
+                  },
+                  {
+                    rotate: favoriteRotation,
+                  },
+                ],
+              }}>
+              <Icon
+                name="heart"
+                size={25}
+                color={
+                  isFavorite
+                    ? theme.colors.coral
+                    : theme.colors.text
+                }
+                filled={isFavorite}
+                strokeWidth={2.2}
+              />
+            </Animated.View>
+          </Pressable>
         </View>
-        <View style={styles.content}>
-          <Text style={styles.name}>{a.name}</Text>
-          <Text style={styles.origin}>
-            {[a.origin?.country, a.origin?.region]
-              .filter(Boolean)
-              .join(' · ') || 'Origin not listed'}
-          </Text>
-          {isFetching && (
-            <Text style={styles.refreshing}>Refreshing breed details…</Text>
-          )}
-          <View style={styles.tabs}>
-            {(['Overview', 'Traits', 'Gallery'] as const).map(t => (
-              <Pressable
-                key={t}
-                onPress={() => setTab(t)}
-                style={[styles.tab, t === tab && styles.tabActive]}
-              >
+
+        {/* Main Content */}
+        <View
+          style={{
+            marginTop: -24,
+            paddingHorizontal: theme.spacing.lg,
+            paddingTop: theme.spacing.xl,
+            paddingBottom: theme.spacing.lg,
+            borderTopLeftRadius: theme.radius.xl,
+            borderTopRightRadius: theme.radius.xl,
+            backgroundColor: theme.colors.bg,
+          }}>
+          {/* Breed Header */}
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'flex-start',
+              justifyContent: 'space-between',
+              gap: theme.spacing.sm,
+            }}>
+            <View
+              style={{
+                flex: 1,
+              }}>
+              <Text
+                style={{
+                  fontSize: 30,
+                  lineHeight: 36,
+                  fontFamily: theme.fonts.extraBold,
+                  color: theme.colors.text,
+                }}>
+                {attributes.name}
+              </Text>
+
+              <Text
+                style={{
+                  marginTop: 5,
+                  fontSize: 13,
+                  fontFamily: theme.fonts.semibold,
+                  color: theme.colors.sage,
+                }}>
+                {[
+                  attributes.origin?.country,
+                  attributes.origin?.region,
+                ]
+                  .filter(Boolean)
+                  .join(' · ') || 'Origin not listed'}
+              </Text>
+            </View>
+
+            {isFavorite && (
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 5,
+                  paddingHorizontal: 9,
+                  paddingVertical: 7,
+                  borderRadius: theme.radius.sm,
+                  backgroundColor: theme.colors.cream,
+                  borderWidth: 1,
+                  borderColor: theme.colors.peach,
+                }}>
+                <Icon
+                  name="heart"
+                  size={14}
+                  color={theme.colors.coralDark}
+                  filled
+                />
+
                 <Text
-                  style={[styles.tabText, t === tab && styles.tabTextActive]}
-                >
-                  {t}
+                  style={{
+                    fontSize: 11,
+                    fontFamily: theme.fonts.semibold,
+                    color: theme.colors.coralDark,
+                  }}>
+                  Favorite
                 </Text>
-              </Pressable>
-            ))}
+              </View>
+            )}
           </View>
-          {tab === 'Overview' ? (
-            <Overview a={a} />
-          ) : tab === 'Traits' ? (
-            <Traits a={a} />
+
+          {/* Sync Status */}
+          {isFetching && (
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 6,
+                marginTop: theme.spacing.sm,
+              }}>
+              <Icon
+                name="sync"
+                size={14}
+                color={theme.colors.muted}
+              />
+
+              <Text
+                style={{
+                  fontSize: 11,
+                  fontFamily: theme.fonts.regular,
+                  color: theme.colors.muted,
+                }}>
+                Refreshing breed details...
+              </Text>
+            </View>
+          )}
+
+          {/* Error / Cached Data Banner */}
+          {isError && (
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: theme.spacing.sm,
+                marginTop: theme.spacing.md,
+                padding: theme.spacing.md,
+                borderRadius: theme.radius.md,
+                backgroundColor: theme.colors.cream,
+                borderWidth: 1,
+                borderColor: theme.colors.peach,
+              }}>
+              <Icon
+                name="info"
+                size={16}
+                color={theme.colors.coralDark}
+              />
+
+              <Text
+                style={{
+                  flex: 1,
+                  fontSize: 12,
+                  fontFamily: theme.fonts.regular,
+                  color: theme.colors.inkSoft,
+                }}>
+                Showing cached breed information.
+              </Text>
+            </View>
+          )}
+
+          {/* Tabs */}
+          <View
+            style={{
+              flexDirection: 'row',
+              marginTop: theme.spacing.xl,
+              borderBottomWidth: 1,
+              borderBottomColor: theme.colors.border,
+            }}>
+            {(['Overview', 'Traits', 'Gallery'] as const).map(
+              tab => {
+                const selected = activeTab === tab;
+
+                return (
+                  <Pressable
+                    key={tab}
+                    onPress={() => setActiveTab(tab)}
+                    accessibilityRole="tab"
+                    accessibilityState={{
+                      selected,
+                    }}
+                    style={({ pressed }) => ({
+                      flex: 1,
+                      alignItems: 'center',
+                      paddingVertical: 13,
+                      borderBottomWidth: 3,
+                      borderBottomColor: selected
+                        ? theme.colors.coral
+                        : 'transparent',
+                      opacity: pressed ? 0.65 : 1,
+                    })}>
+                    <Text
+                      style={{
+                        fontSize: 13,
+                        fontFamily: selected
+                          ? theme.fonts.bold
+                          : theme.fonts.semibold,
+                        color: selected
+                          ? theme.colors.coralDark
+                          : theme.colors.muted,
+                      }}>
+                      {tab}
+                    </Text>
+                  </Pressable>
+                );
+              },
+            )}
+          </View>
+
+          {/* Tab Content */}
+          {activeTab === 'Overview' ? (
+            <Overview attributes={attributes} />
+          ) : activeTab === 'Traits' ? (
+            <Traits attributes={attributes} />
           ) : (
             <Gallery
-              images={a.images || []}
-              onOpen={() => navigation.navigate('Gallery', { id: breed.id })}
+              breedName={attributes.name}
+              images={attributes.images || []}
+              onOpen={() =>
+                navigation.navigate('Gallery', {
+                  id: breed.id,
+                })
+              }
             />
           )}
         </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
-function Overview({ a }: any) {
+
+/* -------------------------------------------------------------------------- */
+/* Overview                                                                   */
+/* -------------------------------------------------------------------------- */
+
+function Overview({
+  attributes,
+}: {
+  attributes: BreedAttributes;
+}) {
   return (
     <View>
-      <Text style={styles.section}>About</Text>
-      <Text style={styles.body}>
-        {a.description || 'No description available.'}
+      <Text
+        style={{
+          marginTop: theme.spacing.xl,
+          marginBottom: theme.spacing.md,
+          fontSize: 20,
+          lineHeight: 27,
+          fontFamily: theme.fonts.extraBold,
+          color: theme.colors.text,
+        }}>
+        About this breed
       </Text>
-      <View style={styles.grid}>
-        <Stat title="Life span" value={`${rangeText(a.life)} years`} />
-        <Stat title="Male weight" value={`${rangeText(a.male_weight)} kg`} />
+
+      <Text
+        style={{
+          fontSize: 15,
+          lineHeight: 24,
+          fontFamily: theme.fonts.regular,
+          color: theme.colors.muted,
+        }}>
+        {attributes.description || 'No description available.'}
+      </Text>
+
+      <View
+        style={{
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+          gap: 10,
+          marginVertical: theme.spacing.lg,
+        }}>
+        <Stat
+          title="Life span"
+          value={`${rangeText(attributes.life)} years`}
+        />
+
+        <Stat
+          title="Male weight"
+          value={`${rangeText(attributes.male_weight)} kg`}
+        />
+
         <Stat
           title="Female weight"
-          value={`${rangeText(a.female_weight)} kg`}
+          value={`${rangeText(attributes.female_weight)} kg`}
         />
-        <Stat title="Male height" value={`${rangeText(a.male_height)} cm`} />
+
+        <Stat
+          title="Male height"
+          value={`${rangeText(attributes.male_height)} cm`}
+        />
+
         <Stat
           title="Female height"
-          value={`${rangeText(a.female_height)} cm`}
+          value={`${rangeText(attributes.female_height)} cm`}
         />
-        <Stat title="Hypoallergenic" value={a.hypoallergenic ? 'Yes' : 'No'} />
+
+        <Stat
+          title="Hypoallergenic"
+          value={attributes.hypoallergenic ? 'Yes' : 'No'}
+        />
       </View>
+
       <Card>
-        <Text style={styles.cardTitle}>Origin</Text>
-        <Text style={styles.bodySmall}>
-          {[a.origin?.era, a.origin?.region, a.origin?.country]
+        <Text
+          style={{
+            marginBottom: 6,
+            fontSize: 15,
+            fontFamily: theme.fonts.bold,
+            color: theme.colors.text,
+          }}>
+          Origin
+        </Text>
+
+        <Text
+          style={{
+            fontSize: 13,
+            lineHeight: 20,
+            fontFamily: theme.fonts.regular,
+            color: theme.colors.muted,
+          }}>
+          {[
+            attributes.origin?.era,
+            attributes.origin?.region,
+            attributes.origin?.country,
+          ]
             .filter(Boolean)
-            .join(' · ') || '—'}
+            .join(' · ') || 'Not listed'}
         </Text>
       </Card>
+
       <Card>
-        <Text style={styles.cardTitle}>Coat</Text>
-        <Text style={styles.bodySmall}>
-          {[a.coat?.type, a.coat?.length].filter(Boolean).join(' · ') || '—'}
+        <Text
+          style={{
+            marginBottom: 6,
+            fontSize: 15,
+            fontFamily: theme.fonts.bold,
+            color: theme.colors.text,
+          }}>
+          Coat
         </Text>
-        <Text style={styles.bodySmall}>
-          {(a.coat?.colors || []).join(', ')}
+
+        <Text
+          style={{
+            fontSize: 13,
+            lineHeight: 20,
+            fontFamily: theme.fonts.regular,
+            color: theme.colors.muted,
+          }}>
+          {[
+            attributes.coat?.type,
+            attributes.coat?.length,
+          ]
+            .filter(Boolean)
+            .join(' · ') || 'Not listed'}
+        </Text>
+
+        {!!attributes.coat?.colors?.length && (
+          <Text
+            style={{
+              marginTop: 4,
+              fontSize: 13,
+              lineHeight: 20,
+              fontFamily: theme.fonts.regular,
+              color: theme.colors.muted,
+            }}>
+            {attributes.coat.colors.join(', ')}
+          </Text>
+        )}
+      </Card>
+
+      <Card>
+        <Text
+          style={{
+            marginBottom: 6,
+            fontSize: 15,
+            fontFamily: theme.fonts.bold,
+            color: theme.colors.text,
+          }}>
+          Also known as
+        </Text>
+
+        <Text
+          style={{
+            fontSize: 13,
+            lineHeight: 20,
+            fontFamily: theme.fonts.regular,
+            color: theme.colors.muted,
+          }}>
+          {attributes.other_names?.join(', ') ||
+            'No other names listed'}
         </Text>
       </Card>
+
       <Card>
-        <Text style={styles.cardTitle}>Also known as</Text>
-        <Text style={styles.bodySmall}>
-          {(a.other_names || []).join(', ') || 'No other names listed'}
+        <Text
+          style={{
+            marginBottom: 8,
+            fontSize: 15,
+            fontFamily: theme.fonts.bold,
+            color: theme.colors.text,
+          }}>
+          Recognized by
         </Text>
-      </Card>
-      <Card>
-        <Text style={styles.cardTitle}>Recognized by</Text>
-        <View style={styles.pills}>
-          {(a.recognized_by || []).map((x: string) => (
-            <Text key={x} style={styles.pill}>
-              {x}
-            </Text>
+
+        <View
+          style={{
+            flexDirection: 'row',
+            flexWrap: 'wrap',
+            gap: 7,
+          }}>
+          {attributes.recognized_by?.map(organization => (
+            <View
+              key={organization}
+              style={{
+                paddingHorizontal: 10,
+                paddingVertical: 7,
+                borderRadius: theme.radius.sm,
+                backgroundColor: theme.colors.sageLight,
+              }}>
+              <Text
+                style={{
+                  fontSize: 12,
+                  fontFamily: theme.fonts.semibold,
+                  color: theme.colors.sage,
+                }}>
+                {organization}
+              </Text>
+            </View>
           ))}
+
+          {!attributes.recognized_by?.length && (
+            <Text
+              style={{
+                fontSize: 13,
+                fontFamily: theme.fonts.regular,
+                color: theme.colors.muted,
+              }}>
+              Not listed
+            </Text>
+          )}
         </View>
       </Card>
     </View>
   );
 }
-function Stat({ title, value }: { title: string; value: string }) {
+
+/* -------------------------------------------------------------------------- */
+/* Stat                                                                       */
+/* -------------------------------------------------------------------------- */
+
+function Stat({
+  title,
+  value,
+}: {
+  title: string;
+  value: string;
+}) {
   return (
-    <View style={styles.stat}>
-      <Text style={styles.statTitle}>{title}</Text>
-      <Text style={styles.statValue}>{value}</Text>
+    <View
+      style={{
+        width: '48%',
+        minHeight: 76,
+        justifyContent: 'center',
+        padding: 13,
+        borderRadius: theme.radius.md,
+        backgroundColor: theme.colors.surface,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+      }}>
+      <Text
+        style={{
+          fontSize: 11,
+          fontFamily: theme.fonts.regular,
+          color: theme.colors.muted,
+        }}>
+        {title}
+      </Text>
+
+      <Text
+        style={{
+          marginTop: 5,
+          fontSize: 14,
+          fontFamily: theme.fonts.bold,
+          color: theme.colors.text,
+        }}>
+        {value}
+      </Text>
     </View>
   );
 }
-function Traits({ a }: any) {
-  const t = a.traits || {};
+
+/* -------------------------------------------------------------------------- */
+/* Traits                                                                     */
+/* -------------------------------------------------------------------------- */
+
+function Traits({
+  attributes,
+}: {
+  attributes: BreedAttributes;
+}) {
+  const traits = attributes.traits || {};
+  const temperament = traits.temperament || [];
+
   return (
     <View>
-      <Text style={styles.section}>Personality & lifestyle</Text>
-      <View style={styles.temperament}>
-        {(t.temperament || []).map((x: string) => (
-          <Text key={x} style={styles.temp}>
-            {x}
-          </Text>
-        ))}
-      </View>
-      {traitKeys.map(k => {
-        const v = t[k];
-        if (typeof v !== 'number') return null;
-        const score =
-          k === 'exercise_minutes' ? Math.min(5, Math.round(v / 30)) : v;
-        return (
-          <View key={k} style={styles.trait}>
-            <View style={styles.traitTop}>
-              <Text style={styles.traitName}>{traitLabels[k]}</Text>
-              <Text style={styles.traitValue}>
-                {k === 'exercise_minutes' ? `${v} min` : `${v}/5`}
+      <Text
+        style={{
+          marginTop: theme.spacing.xl,
+          marginBottom: theme.spacing.md,
+          fontSize: 20,
+          lineHeight: 27,
+          fontFamily: theme.fonts.extraBold,
+          color: theme.colors.text,
+        }}>
+        Personality & lifestyle
+      </Text>
+
+      {temperament.length > 0 && (
+        <View
+          style={{
+            flexDirection: 'row',
+            flexWrap: 'wrap',
+            gap: 8,
+          }}>
+          {temperament.map(item => (
+            <View
+              key={item}
+              style={{
+                paddingHorizontal: 11,
+                paddingVertical: 8,
+                borderRadius: theme.radius.sm,
+                backgroundColor: theme.colors.cream,
+                borderWidth: 1,
+                borderColor: theme.colors.border,
+              }}>
+              <Text
+                style={{
+                  fontSize: 12,
+                  fontFamily: theme.fonts.semibold,
+                  color: theme.colors.text,
+                }}>
+                {item}
               </Text>
             </View>
+          ))}
+        </View>
+      )}
+
+      {traitKeys.map(key => {
+        const value = traits[key];
+
+        if (typeof value !== 'number') {
+          return null;
+        }
+
+        const score =
+          key === 'exercise_minutes'
+            ? Math.min(5, Math.round(value / 30))
+            : value;
+
+        return (
+          <View
+            key={key}
+            style={{
+              paddingVertical: 13,
+              borderBottomWidth: 1,
+              borderBottomColor: theme.colors.border,
+            }}>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: 8,
+              }}>
+              <Text
+                style={{
+                  flex: 1,
+                  fontSize: 13,
+                  fontFamily: theme.fonts.semibold,
+                  color: theme.colors.text,
+                }}>
+                {traitLabels[key]}
+              </Text>
+
+              <Text
+                style={{
+                  fontSize: 13,
+                  fontFamily: theme.fonts.bold,
+                  color: theme.colors.coralDark,
+                }}>
+                {key === 'exercise_minutes'
+                  ? `${value} min`
+                  : `${value}/5`}
+              </Text>
+            </View>
+
             <Scale value={score} />
           </View>
         );
@@ -210,150 +965,195 @@ function Traits({ a }: any) {
     </View>
   );
 }
-function Gallery({ images, onOpen }: { images: any[]; onOpen: () => void }) {
+
+
+/* -------------------------------------------------------------------------- */
+/* Gallery                                                                    */
+/* -------------------------------------------------------------------------- */
+
+
+
+
+function Gallery({
+  images,
+  onOpen,
+  breedName,
+}: {
+  images: BreedImage[];
+  onOpen: () => void;
+  breedName: string;
+}) {
   return (
     <View>
-      <Text style={styles.section}>Photo gallery</Text>
-      {images.slice(0, 9).map((im: any, i: number) => (
-        <Pressable key={im.id} onPress={onOpen} style={styles.photoRow}>
-          <CachedImage
-            uri={im.medium || im.thumb || im.url}
-            style={styles.thumb}
-          />
-          <View style={{ flex: 1 }}>
-            <Text style={styles.cardTitle}>Photo {i + 1}</Text>
-            <Text style={styles.bodySmall}>
-              {im.attribution?.author || 'Author not provided'}
-            </Text>
-            <Text style={styles.bodySmall}>
-              {im.attribution?.license || 'License not provided'}
-            </Text>
+      {/* Gallery Heading */}
+      <Text
+        style={{
+          marginTop: theme.spacing.xl,
+          marginBottom: theme.spacing.sm,
+          fontSize: 20,
+          lineHeight: 27,
+          fontFamily: theme.fonts.extraBold,
+          color: theme.colors.text,
+        }}>
+        Photo gallery
+      </Text>
+
+      {/* Gallery Description */}
+      <Text
+        style={{
+          marginBottom: theme.spacing.lg,
+          fontSize: 13,
+          lineHeight: 20,
+          fontFamily: theme.fonts.regular,
+          color: theme.colors.muted,
+        }}>
+        Browse photos of {breedName}.
+      </Text>
+
+      {/* Full Gallery */}
+      {images.map((image, index) => {
+        const imageTitle = `${breedName} Photo ${index + 1}`;
+
+        const imageUrl =
+          image.large ||
+          image.medium ||
+          image.thumb ||
+          image.url;
+
+        const author = image.attribution?.author;
+
+        return (
+          <View
+            key={image.id ?? index}
+            style={{
+              marginBottom: theme.spacing.md,
+              borderWidth: 1,
+              borderColor: theme.colors.border,
+              borderRadius: theme.radius.lg,
+              backgroundColor: theme.colors.surface,
+              overflow: 'hidden',
+              ...theme.cardStyle,
+            }}>
+            <Pressable
+              onPress={onOpen}
+              accessibilityRole="button"
+              accessibilityLabel={`Open ${imageTitle}`}
+              style={({ pressed }) => ({
+                flexDirection: 'row',
+                alignItems: 'flex-start',
+                padding: theme.spacing.md,
+                opacity: pressed ? 0.7 : 1,
+              })}>
+              {/* Image - Top Aligned */}
+              <CachedImage
+                uri={imageUrl}
+                style={{
+                  width: 104,
+                  height: 104,
+                  flexShrink: 0,
+                  borderRadius: theme.radius.md,
+                  backgroundColor: theme.colors.cream,
+                }}
+              />
+
+              {/* Details */}
+              <View
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  marginLeft: theme.spacing.md,
+                  paddingRight: theme.spacing.xs,
+                }}>
+                {/* Photo Title */}
+                <Text
+                  numberOfLines={2}
+                  style={{
+                    marginBottom: 6,
+                    fontSize: 15,
+                    lineHeight: 21,
+                    fontFamily: theme.fonts.bold,
+                    color: theme.colors.text,
+                  }}>
+                  {imageTitle}
+                </Text>
+
+                {/* Photo Count */}
+                <Text
+                  style={{
+                    marginBottom: 6,
+                    fontSize: 11,
+                    lineHeight: 16,
+                    fontFamily: theme.fonts.semibold,
+                    color: theme.colors.coralDark,
+                  }}>
+                  {`Photo ${index + 1} of ${images.length}`}
+                </Text>
+
+                {/* Photographer - Only if Available */}
+                {!!author && (
+                  <Text
+                    numberOfLines={2}
+                    style={{
+                      fontSize: 12,
+                      lineHeight: 17,
+                      fontFamily: theme.fonts.regular,
+                      color: theme.colors.muted,
+                    }}>
+                    {`By ${author}`}
+                  </Text>
+                )}
+              </View>
+
+              {/* Arrow */}
+              <View
+                style={{
+                  paddingTop: 2,
+                  paddingLeft: theme.spacing.xs,
+                }}>
+                <Icon
+                  name="chevron"
+                  size={18}
+                  color={theme.colors.muted}
+                />
+              </View>
+            </Pressable>
           </View>
-        </Pressable>
-      ))}
+        );
+      })}
+
+      {/* Empty State */}
+      {images.length === 0 && (
+        <View
+          style={{
+            alignItems: 'center',
+            justifyContent: 'center',
+            paddingVertical: theme.spacing.xl,
+            paddingHorizontal: theme.spacing.lg,
+            borderWidth: 1,
+            borderColor: theme.colors.border,
+            borderRadius: theme.radius.lg,
+            backgroundColor: theme.colors.surface,
+            ...theme.cardStyle,
+          }}>
+          <Icon
+            name="info"
+            size={24}
+            color={theme.colors.muted}
+          />
+
+          <Text
+            style={{
+              marginTop: theme.spacing.sm,
+              textAlign: 'center',
+              fontSize: 13,
+              lineHeight: 20,
+              fontFamily: theme.fonts.regular,
+              color: theme.colors.muted,
+            }}>
+            No gallery images available for this breed.
+          </Text>
+        </View>
+      )}
     </View>
   );
 }
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.bg },
-  hero: { height: 300, position: 'relative' },
-  heroImg: { width: '100%', height: '100%', backgroundColor: colors.cream },
-  circle: {
-    position: 'absolute',
-    top: 14,
-    left: 16,
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    backgroundColor: 'rgba(255,255,255,.92)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  content: {
-    marginTop: -24,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    backgroundColor: colors.bg,
-    padding: 20,
-  },
-  name: { fontSize: 30, fontWeight: '900', color: colors.text },
-  origin: { color: colors.sage, fontWeight: '800', marginTop: 4 },
-  refreshing: { fontSize: 11, color: colors.muted, marginTop: 4 },
-  tabs: {
-    flexDirection: 'row',
-    marginTop: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  tab: { flex: 1, alignItems: 'center', paddingBottom: 12 },
-  tabActive: { borderBottomWidth: 3, borderBottomColor: colors.coral },
-  tabText: { color: colors.muted, fontWeight: '800' },
-  tabTextActive: { color: colors.coralDark },
-  section: {
-    fontSize: 20,
-    fontWeight: '900',
-    color: colors.text,
-    marginTop: 22,
-    marginBottom: 10,
-  },
-  body: { fontSize: 15, lineHeight: 23, color: colors.muted },
-  bodySmall: { fontSize: 13, lineHeight: 19, color: colors.muted },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginVertical: 16 },
-  stat: {
-    width: '48%',
-    backgroundColor: colors.surface,
-    borderRadius: 16,
-    padding: 13,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  statTitle: { fontSize: 11, color: colors.muted },
-  statValue: {
-    fontSize: 14,
-    fontWeight: '900',
-    color: colors.text,
-    marginTop: 4,
-  },
-  cardTitle: {
-    fontSize: 15,
-    fontWeight: '900',
-    color: colors.text,
-    marginBottom: 5,
-  },
-  pills: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
-  pill: {
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    borderRadius: 10,
-    backgroundColor: colors.sageLight,
-    color: colors.sage,
-    fontWeight: '800',
-  },
-  temperament: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  temp: {
-    paddingHorizontal: 11,
-    paddingVertical: 8,
-    borderRadius: 12,
-    backgroundColor: colors.cream,
-    borderWidth: 1,
-    borderColor: colors.border,
-    color: colors.text,
-    fontWeight: '700',
-  },
-  trait: {
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  traitTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 7,
-  },
-  traitName: { fontWeight: '800', color: colors.text },
-  traitValue: { fontWeight: '900', color: colors.coralDark },
-  photoRow: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 18,
-    padding: 10,
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 10,
-  },
-  thumb: {
-    width: 100,
-    height: 86,
-    borderRadius: 12,
-    backgroundColor: colors.cream,
-  },
-  center: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.bg,
-  },
-  centerTitle: { fontSize: 20, fontWeight: '900', color: colors.text },
-  centerText: { marginTop: 6, color: colors.muted },
-});
