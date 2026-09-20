@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
@@ -107,7 +106,7 @@ export default function SyncScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
           paddingHorizontal: theme.spacing.lg,
-          paddingBottom: 32,
+          paddingBottom: insets.bottom + 24,
         }}
       >
         {/* HEADER */}
@@ -124,11 +123,15 @@ export default function SyncScreen() {
               justifyContent: 'space-between',
             }}
           >
-            <View style={{ flex: 1 }}>
+            <View
+              style={{
+                flex: 1,
+              }}
+            >
               <Text
                 style={{
                   color: theme.colors.text,
-                  fontFamily: theme.fonts.extraBold,
+                  fontFamily: theme.fonts.semibold,
                   fontSize: 24,
                   lineHeight: 30,
                   letterSpacing: -0.35,
@@ -161,7 +164,13 @@ export default function SyncScreen() {
                 marginLeft: theme.spacing.sm,
               }}
             >
-              <Text style={{ fontSize: 22 }}>🐾</Text>
+              <Text
+                style={{
+                  fontSize: 22,
+                }}
+              >
+                🐾
+              </Text>
             </View>
           </View>
         </View>
@@ -185,11 +194,15 @@ export default function SyncScreen() {
                 marginBottom: theme.spacing.md,
               }}
             >
-              <View style={{ flex: 1 }}>
+              <View
+                style={{
+                  flex: 1,
+                }}
+              >
                 <Text
                   style={{
                     color: theme.colors.text,
-                    fontFamily: theme.fonts.extraBold,
+                    fontFamily: theme.fonts.semibold,
                     fontSize: 17,
                     lineHeight: 22,
                   }}
@@ -247,7 +260,6 @@ export default function SyncScreen() {
                 Cached breeds
               </Text>
 
-              {/* NUMBER AND DESCRIPTION IN ONE LINE */}
               <View
                 style={{
                   flexDirection: 'row',
@@ -259,7 +271,7 @@ export default function SyncScreen() {
                 <Text
                   style={{
                     color: theme.colors.coral,
-                    fontFamily: theme.fonts.extraBold,
+                    fontFamily: theme.fonts.semibold,
                     fontSize: 36,
                     lineHeight: 44,
                   }}
@@ -523,7 +535,13 @@ export default function SyncScreen() {
                     backgroundColor: '#FCE8E2',
                   }}
                 >
-                  <Text style={{ fontSize: 19 }}>🗑️</Text>
+                  <Text
+                    style={{
+                      fontSize: 19,
+                    }}
+                  >
+                    🗑️
+                  </Text>
                 </View>
 
                 <View
@@ -604,7 +622,13 @@ export default function SyncScreen() {
                   </>
                 ) : (
                   <>
-                    <Text style={{ fontSize: 16 }}>🗑️</Text>
+                    <Text
+                      style={{
+                        fontSize: 16,
+                      }}
+                    >
+                      🗑️
+                    </Text>
 
                     <Text
                       style={{
@@ -686,35 +710,7 @@ export default function SyncScreen() {
         </View>
 
         {/* FOOTER */}
-        <View
-          style={{
-            alignItems: 'center',
-            paddingTop: theme.spacing.lg,
-            paddingBottom: theme.spacing.md,
-          }}
-        >
-          <Text
-            style={{
-              color: theme.colors.muted,
-              ...theme.typography.caption,
-              fontFamily: theme.fonts.regular,
-              textAlign: 'center',
-            }}
-          >
-            PawBuddy • Tripare AI Assignment
-          </Text>
 
-          <Text
-            style={{
-              marginTop: 4,
-              color: theme.colors.muted,
-              ...theme.typography.caption,
-              fontFamily: theme.fonts.regular,
-            }}
-          >
-            React Native CLI • Offline Ready
-          </Text>
-        </View>
       </ScrollView>
     </View>
   );

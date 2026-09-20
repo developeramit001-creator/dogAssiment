@@ -842,7 +842,7 @@ const styles = StyleSheet.create({
 
   headerTitle: {
     fontSize: 17,
-    fontFamily: theme.fonts.bold,
+    fontFamily: theme.fonts.semibold,
     color: colors.text,
   },
 
@@ -889,7 +889,7 @@ const styles = StyleSheet.create({
   breedName: {
     fontSize: 32,
     lineHeight: 38,
-    fontFamily: theme.fonts.bold,
+    fontFamily: theme.fonts.semibold,
     color: colors.text,
     letterSpacing: -0.7,
   },
@@ -955,7 +955,7 @@ const styles = StyleSheet.create({
 
   imageBreedName: {
     fontSize: 21,
-    fontFamily: theme.fonts.bold,
+    fontFamily: theme.fonts.semibold,
     color: colors.white,
   },
 
@@ -1021,7 +1021,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 19,
     lineHeight: 25,
-    fontFamily: theme.fonts.bold,
+    fontFamily: theme.fonts.semibold,
     color: colors.text,
   },
 
@@ -1219,7 +1219,7 @@ const styles = StyleSheet.create({
     fontSize: 22,
     textAlign: 'center',
     color: colors.text,
-    fontFamily: theme.fonts.bold,
+    fontFamily: theme.fonts.semibold,
   },
 
   errorDescription: {
@@ -1242,7 +1242,7 @@ const styles = StyleSheet.create({
   primaryButtonText: {
     fontSize: 14,
     color: colors.white,
-    fontFamily: theme.fonts.bold,
+    fontFamily: theme.fonts.semibold,
   },
 });
 

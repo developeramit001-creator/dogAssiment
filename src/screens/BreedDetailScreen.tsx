@@ -159,7 +159,7 @@ export default function BreedDetailScreen({
         <Text
           style={{
             fontSize: 21,
-            fontFamily: theme.fonts.extraBold,
+            fontFamily: theme.fonts.semibold,
             color: theme.colors.text,
           }}>
           Breed unavailable
@@ -410,7 +410,7 @@ export default function BreedDetailScreen({
                 style={{
                   fontSize: 30,
                   lineHeight: 36,
-                  fontFamily: theme.fonts.extraBold,
+                  fontFamily: theme.fonts.semibold,
                   color: theme.colors.text,
                 }}>
                 {attributes.name}
@@ -556,7 +556,7 @@ export default function BreedDetailScreen({
                       style={{
                         fontSize: 13,
                         fontFamily: selected
-                          ? theme.fonts.bold
+                          ? theme.fonts.semibold
                           : theme.fonts.semibold,
                         color: selected
                           ? theme.colors.coralDark
@@ -609,7 +609,7 @@ function Overview({
           marginBottom: theme.spacing.md,
           fontSize: 20,
           lineHeight: 27,
-          fontFamily: theme.fonts.extraBold,
+          fontFamily: theme.fonts.semibold,
           color: theme.colors.text,
         }}>
         About this breed
@@ -668,7 +668,7 @@ function Overview({
           style={{
             marginBottom: 6,
             fontSize: 15,
-            fontFamily: theme.fonts.bold,
+            fontFamily: theme.fonts.semibold,
             color: theme.colors.text,
           }}>
           Origin
@@ -696,7 +696,7 @@ function Overview({
           style={{
             marginBottom: 6,
             fontSize: 15,
-            fontFamily: theme.fonts.bold,
+            fontFamily: theme.fonts.semibold,
             color: theme.colors.text,
           }}>
           Coat
@@ -736,7 +736,7 @@ function Overview({
           style={{
             marginBottom: 6,
             fontSize: 15,
-            fontFamily: theme.fonts.bold,
+            fontFamily: theme.fonts.semibold,
             color: theme.colors.text,
           }}>
           Also known as
@@ -759,7 +759,7 @@ function Overview({
           style={{
             marginBottom: 8,
             fontSize: 15,
-            fontFamily: theme.fonts.bold,
+            fontFamily: theme.fonts.semibold,
             color: theme.colors.text,
           }}>
           Recognized by
@@ -843,7 +843,7 @@ function Stat({
         style={{
           marginTop: 5,
           fontSize: 14,
-          fontFamily: theme.fonts.bold,
+          fontFamily: theme.fonts.semibold,
           color: theme.colors.text,
         }}>
         {value}
@@ -872,7 +872,7 @@ function Traits({
           marginBottom: theme.spacing.md,
           fontSize: 20,
           lineHeight: 27,
-          fontFamily: theme.fonts.extraBold,
+          fontFamily: theme.fonts.semibold,
           color: theme.colors.text,
         }}>
         Personality & lifestyle
@@ -949,7 +949,7 @@ function Traits({
               <Text
                 style={{
                   fontSize: 13,
-                  fontFamily: theme.fonts.bold,
+                  fontFamily: theme.fonts.semibold,
                   color: theme.colors.coralDark,
                 }}>
                 {key === 'exercise_minutes'
@@ -992,7 +992,7 @@ function Gallery({
           marginBottom: theme.spacing.sm,
           fontSize: 20,
           lineHeight: 27,
-          fontFamily: theme.fonts.extraBold,
+          fontFamily: theme.fonts.semibold,
           color: theme.colors.text,
         }}>
         Photo gallery
@@ -1071,7 +1071,7 @@ function Gallery({
                     marginBottom: 6,
                     fontSize: 15,
                     lineHeight: 21,
-                    fontFamily: theme.fonts.bold,
+                    fontFamily: theme.fonts.semibold,
                     color: theme.colors.text,
                   }}>
                   {imageTitle}

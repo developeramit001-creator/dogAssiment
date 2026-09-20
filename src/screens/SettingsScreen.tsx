@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
@@ -120,7 +119,7 @@ export default function SettingsScreen() {
         paddingHorizontal: theme.spacing.md,
       }}
     >
-      {/* Header */}
+      {/* HEADER */}
       <View
         style={{
           paddingTop: theme.spacing.md,
@@ -131,7 +130,7 @@ export default function SettingsScreen() {
           style={{
             color: theme.colors.text,
             ...theme.typography.h1,
-            fontFamily: theme.fonts.extraBold,
+            fontFamily: theme.fonts.semibold,
           }}
         >
           Settings
@@ -149,7 +148,7 @@ export default function SettingsScreen() {
         </Text>
       </View>
 
-      {/* App Information */}
+      {/* APP INFORMATION */}
       <Card>
         <View
           style={{
@@ -168,7 +167,13 @@ export default function SettingsScreen() {
               backgroundColor: '#FFF0E9',
             }}
           >
-            <Text style={{ fontSize: 25 }}>🐾</Text>
+            <Text
+              style={{
+                fontSize: 25,
+              }}
+            >
+              🐾
+            </Text>
           </View>
 
           <View
@@ -181,7 +186,7 @@ export default function SettingsScreen() {
               style={{
                 color: theme.colors.text,
                 ...theme.typography.h3,
-                fontFamily: theme.fonts.extraBold,
+                fontFamily: theme.fonts.semibold,
               }}
             >
               PawBuddy
@@ -233,14 +238,18 @@ export default function SettingsScreen() {
         </Text>
       </Card>
 
-      {/* Application Details */}
-      <View style={{ marginTop: theme.spacing.lg }}>
+      {/* APPLICATION DETAILS */}
+      <View
+        style={{
+          marginTop: theme.spacing.lg,
+        }}
+      >
         <Text
           style={{
             marginBottom: theme.spacing.sm,
             color: theme.colors.text,
             ...theme.typography.h3,
-            fontFamily: theme.fonts.extraBold,
+            fontFamily: theme.fonts.semibold,
           }}
         >
           Application Details
@@ -258,14 +267,18 @@ export default function SettingsScreen() {
         </Card>
       </View>
 
-      {/* Offline Data Section */}
-      <View style={{ marginTop: theme.spacing.lg }}>
+      {/* OFFLINE DATA */}
+      <View
+        style={{
+          marginTop: theme.spacing.lg,
+        }}
+      >
         <Text
           style={{
             marginBottom: theme.spacing.sm,
             color: theme.colors.text,
             ...theme.typography.h3,
-            fontFamily: theme.fonts.extraBold,
+            fontFamily: theme.fonts.semibold,
           }}
         >
           Offline Data
@@ -288,7 +301,13 @@ export default function SettingsScreen() {
                 backgroundColor: '#EAF5EF',
               }}
             >
-              <Text style={{ fontSize: 20 }}>🗄️</Text>
+              <Text
+                style={{
+                  fontSize: 20,
+                }}
+              >
+                🗄️
+              </Text>
             </View>
 
             <View
@@ -381,7 +400,13 @@ export default function SettingsScreen() {
               </>
             ) : (
               <>
-                <Text style={{ fontSize: 17 }}>🗑️</Text>
+                <Text
+                  style={{
+                    fontSize: 17,
+                  }}
+                >
+                  🗑️
+                </Text>
 
                 <Text
                   style={{
@@ -399,7 +424,7 @@ export default function SettingsScreen() {
         </Card>
       </View>
 
-      {/* Footer */}
+      {/* FOOTER */}
       <View
         style={{
           alignItems: 'center',

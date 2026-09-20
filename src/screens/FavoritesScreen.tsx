@@ -1,6 +1,11 @@
 
 import React from 'react';
-import { FlatList, Text, View } from 'react-native';
+import {
+  FlatList,
+  Pressable,
+  Text,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -27,7 +32,9 @@ export default function FavoritesScreen() {
   const dispatch = useAppDispatch();
 
   const breeds = useAppSelector(selectAllBreeds);
-  const favorites = useAppSelector(state => state.app.favorites);
+  const favorites = useAppSelector(
+    state => state.app.favorites,
+  );
 
   const favoriteBreeds = breeds.filter(breed =>
     favorites.includes(breed.id),
@@ -40,6 +47,10 @@ export default function FavoritesScreen() {
 
     dispatch(toggleFavorite(id));
     dispatch(persistFavorites(updatedFavorites) as never);
+  };
+
+  const handleExplorePress = () => {
+    navigation.navigate('Explore' as never);
   };
 
   return (
@@ -243,6 +254,43 @@ export default function FavoritesScreen() {
               the dog library and tap the heart icon to save
               the breeds you love.
             </Text>
+
+            {/* EXPLORE BUTTON */}
+            <Pressable
+              onPress={handleExplorePress}
+              style={({ pressed }) => ({
+                marginTop: theme.spacing.lg,
+                minWidth: 180,
+                paddingHorizontal: theme.spacing.lg,
+                paddingVertical: 14,
+                borderRadius: 16,
+                backgroundColor: pressed
+                  ? '#C45F4D'
+                  : theme.colors.coral,
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexDirection: 'row',
+                gap: 8,
+                opacity: pressed ? 0.9 : 1,
+              })}
+            >
+              <Icon
+                name="search"
+                size={18}
+                color="#FFFFFF"
+                strokeWidth={2}
+              />
+
+              <Text
+                style={{
+                  fontFamily: theme.fonts.semibold,
+                  fontSize: 14,
+                  color: '#FFFFFF',
+                }}
+              >
+                Explore Breeds
+              </Text>
+            </Pressable>
           </View>
         }
       />
