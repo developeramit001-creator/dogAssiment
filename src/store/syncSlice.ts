@@ -81,6 +81,15 @@ const slice = createSlice({
     ) => {
       state.bootstrapReady = action.payload;
     },
+
+    // Reset Sync Center data after clearing offline storage
+    resetSyncState: state => {
+      state.syncing = false;
+      state.lastSync = null;
+      state.cachedCount = 0;
+      state.progress = 0;
+      state.error = null;
+    },
   },
 });
 
@@ -92,6 +101,7 @@ export const {
   failSync,
   setCachedCount,
   setBootstrapReady,
+  resetSyncState,
 } = slice.actions;
 
 export default slice.reducer;

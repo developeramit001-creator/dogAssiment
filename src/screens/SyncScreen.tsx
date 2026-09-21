@@ -8,7 +8,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { setBootstrapReady } from '../store/syncSlice';
+import { resetSyncState, setBootstrapReady } from '../store/syncSlice';
 import { Button, Card, OfflineBanner } from '../components/UI';
 import { clearAll } from '../database';
 import { clearCache } from '../store/cacheSlice';
@@ -74,7 +74,8 @@ export default function SyncScreen({ navigation }) {
 
               // Clear Redux cache
               dispatch(clearCache());
-
+// Reset Sync Center values
+dispatch(resetSyncState());
               // Clear onboarding/settings only
               // Favorites will remain safe
               await dispatch(clearOfflineAppData() as never);
@@ -595,63 +596,72 @@ export default function SyncScreen({ navigation }) {
                 device. You can download the library again using Sync Now.
               </Text>
 
-              <Pressable
-                onPress={handleClearOfflineData}
-                disabled={isBusy}
-                style={{
-                  minHeight: 50,
-                  marginTop: theme.spacing.md,
-                  borderRadius: 14,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexDirection: 'row',
-                  backgroundColor: isBusy ? '#F7DCD5' : '#FFF0ED',
-                  borderWidth: 1,
-                  borderColor: '#F1CFC5',
-                  opacity: isBusy ? 0.7 : 1,
-                }}
-              >
-                {clearing ? (
-                  <>
-                    <ActivityIndicator
-                      size="small"
-                      color={theme.colors.danger}
-                    />
+            <Pressable
+  onPress={handleClearOfflineData}
+  disabled={isBusy}
+  style={{
+    minHeight: 50,
+    marginTop: theme.spacing.md,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
 
-                    <Text
-                      style={{
-                        marginLeft: 8,
-                        color: theme.colors.danger,
-                        ...theme.typography.bodySmall,
-                        fontFamily: theme.fonts.semibold,
-                      }}
-                    >
-                      Clearing data...
-                    </Text>
-                  </>
-                ) : (
-                  <>
-                    <Text
-                      style={{
-                        fontSize: 16,
-                      }}
-                    >
-                      🗑️
-                    </Text>
+    // Clear disabled and enabled background
+    backgroundColor: isBusy ? '#E5E5E5' : '#FFF0ED',
 
-                    <Text
-                      style={{
-                        marginLeft: 8,
-                        color: theme.colors.danger,
-                        ...theme.typography.bodySmall,
-                        fontFamily: theme.fonts.semibold,
-                      }}
-                    >
-                      Clear Offline Data
-                    </Text>
-                  </>
-                )}
-              </Pressable>
+    borderWidth: 1,
+    borderColor: isBusy ? '#CFCFCF' : '#F1CFC5',
+
+    // Disabled state clearly visible
+    opacity: isBusy ? 0.8 : 1,
+  }}
+>
+  {clearing ? (
+    <>
+      <ActivityIndicator
+        size="small"
+        color="#888888"
+      />
+
+      <Text
+        style={{
+          marginLeft: 8,
+          color: '#888888',
+          ...theme.typography.bodySmall,
+          fontFamily: theme.fonts.semibold,
+        }}
+      >
+        Clearing data...
+      </Text>
+    </>
+  ) : (
+    <>
+      <Text
+        style={{
+          fontSize: 16,
+          opacity: isBusy ? 0.5 : 1,
+        }}
+      >
+        🗑️
+      </Text>
+
+      <Text
+        style={{
+          marginLeft: 8,
+
+          // Grey when disabled, danger color otherwise
+          color: isBusy ? '#888888' : theme.colors.danger,
+
+          ...theme.typography.bodySmall,
+          fontFamily: theme.fonts.semibold,
+        }}
+      >
+        {isBusy ? 'Please wait...' : 'Clear Offline Data'}
+      </Text>
+    </>
+  )}
+</Pressable>
             </View>
           </Card>
         </View>
