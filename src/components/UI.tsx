@@ -183,7 +183,7 @@ export function Button({
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      style={({ pressed }) => ({
+      style={({pressed}) => ({
         height: 52,
         borderRadius: theme.radius.md,
         backgroundColor: secondary
@@ -191,7 +191,14 @@ export function Button({
           : theme.colors.coral,
         alignItems: 'center',
         justifyContent: 'center',
+
+        // Press feedback
         opacity: pressed ? 0.8 : 1,
+        transform: [
+          {
+            scale: pressed ? 0.97 : 1,
+          },
+        ],
       })}
     >
       <Text

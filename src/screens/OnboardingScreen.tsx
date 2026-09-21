@@ -28,20 +28,17 @@ const slides = [
   {
     title: 'Meet 283 amazing breeds',
     text: 'Explore a rich breed library with friendly visuals and useful facts.',
-    image:
-      'https://images.dogapi.dog/bsqjg6ibg65zzfcixdr1x0c6d2b6',
+      image: require('../images/onboarding-1.jpeg'),
   },
   {
     title: 'Find the right fit',
     text: 'Search by name and filter by group, size, coat, allergies and traits.',
-    image:
-      'https://images.dogapi.dog/ahkgrjwpqskhevhey02f84ikxn0t',
+     image: require('../images/onboarding-2.jpeg'),
   },
   {
     title: 'Works when life goes offline',
     text: 'Your library stays on-device and syncs again when your connection returns.',
-    image:
-      'https://images.dogapi.dog/ohf04zsgh911n30j53gsn5hu9o79',
+    image: require('../images/onboarding-3.jpg'),
   },
 ];
 
@@ -110,7 +107,7 @@ export default function OnboardingScreen({
       {/* Image Section */}
       <View style={styles.imageWrap}>
         <Image
-          source={{ uri: s.image }}
+       source={s.image}
           style={styles.image}
           resizeMode="cover"
         />

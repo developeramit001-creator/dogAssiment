@@ -25,9 +25,7 @@ import { useAppSelector } from '../store/hooks';
 // Images
 // -----------------------------------------------------
 
-const SPLASH_DOG_IMAGE =
-    'https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=900&q=90';
-
+const SPLASH_DOG_IMAGE = require('../images/splacescreen.jpeg');
 // -----------------------------------------------------
 // Props
 // -----------------------------------------------------
@@ -284,9 +282,7 @@ export default function SplashScreen({
                 >
                     {/* Dog Image */}
                     <Image
-                        source={{
-                            uri: SPLASH_DOG_IMAGE,
-                        }}
+                        source={SPLASH_DOG_IMAGE}
                         resizeMode="cover"
                         style={styles.dogImage}
                     />
