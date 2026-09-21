@@ -1,4 +1,6 @@
+
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+
 type State = {
   online: boolean;
   syncing: boolean;
@@ -6,7 +8,11 @@ type State = {
   error: string | null;
   cachedCount: number;
   progress: number;
+
+  // Initial app data loading status
+  bootstrapReady: boolean;
 };
+
 const initialState: State = {
   online: true,
   syncing: false,
@@ -14,37 +20,70 @@ const initialState: State = {
   error: null,
   cachedCount: 0,
   progress: 0,
+
+  // App starts in loading state
+  bootstrapReady: false,
 };
+
 const slice = createSlice({
   name: 'sync',
+
   initialState,
+
   reducers: {
-    setOnline: (s, a: PayloadAction<boolean>) => {
-      s.online = a.payload;
+    setOnline: (state, action: PayloadAction<boolean>) => {
+      state.online = action.payload;
     },
-    startSync: s => {
-      s.syncing = true;
-      s.error = null;
-      s.progress = 0;
+
+    startSync: state => {
+      state.syncing = true;
+      state.error = null;
+      state.progress = 0;
     },
-    progress: (s, a: PayloadAction<number>) => {
-      s.progress = a.payload;
+
+    progress: (state, action: PayloadAction<number>) => {
+      state.progress = Math.max(
+        0,
+        Math.min(1, action.payload),
+      );
     },
-    finishSync: (s, a: PayloadAction<{ lastSync: string; count: number }>) => {
-      s.syncing = false;
-      s.lastSync = a.payload.lastSync;
-      s.cachedCount = a.payload.count;
-      s.progress = 1;
+
+    finishSync: (
+      state,
+      action: PayloadAction<{
+        lastSync: string;
+        count: number;
+      }>,
+    ) => {
+      state.syncing = false;
+      state.lastSync = action.payload.lastSync;
+      state.cachedCount = action.payload.count;
+      state.progress = 1;
+      state.error = null;
     },
-    failSync: (s, a: PayloadAction<string>) => {
-      s.syncing = false;
-      s.error = a.payload;
+
+    failSync: (state, action: PayloadAction<string>) => {
+      state.syncing = false;
+      state.error = action.payload;
     },
-    setCachedCount: (s, a: PayloadAction<number>) => {
-      s.cachedCount = a.payload;
+
+    setCachedCount: (
+      state,
+      action: PayloadAction<number>,
+    ) => {
+      state.cachedCount = action.payload;
+    },
+
+    // Called when initial cache/data loading is complete
+    setBootstrapReady: (
+      state,
+      action: PayloadAction<boolean>,
+    ) => {
+      state.bootstrapReady = action.payload;
     },
   },
 });
+
 export const {
   setOnline,
   startSync,
@@ -52,5 +91,7 @@ export const {
   finishSync,
   failSync,
   setCachedCount,
+  setBootstrapReady,
 } = slice.actions;
+
 export default slice.reducer;

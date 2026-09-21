@@ -8,7 +8,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
+import { setBootstrapReady } from '../store/syncSlice';
 import { Button, Card, OfflineBanner } from '../components/UI';
 import { clearAll } from '../database';
 import { clearCache } from '../store/cacheSlice';
@@ -16,8 +16,9 @@ import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { syncAll } from '../store/syncService';
 import { theme } from '../theme/theme';
 import { formatDate } from '../utils/format';
+import { clearOfflineAppData } from '../store/appSlice';
 
-export default function SyncScreen() {
+export default function SyncScreen({ navigation }) {
   const insets = useSafeAreaInsets();
 
   const dispatch = useAppDispatch();
@@ -51,13 +52,11 @@ export default function SyncScreen() {
   };
 
   const handleClearOfflineData = () => {
-    if (isBusy) {
-      return;
-    }
+    if (isBusy || clearing) return;
 
     Alert.alert(
       'Clear offline data?',
-      'This will permanently remove all locally saved dog breeds and groups from this device. You can download the data again when you are online.',
+      'Downloaded data will be cleared. Your favorites will remain safe.',
       [
         {
           text: 'Cancel',
@@ -70,20 +69,31 @@ export default function SyncScreen() {
             try {
               setClearing(true);
 
+              // Clear SQLite database
               await clearAll();
 
+              // Clear Redux cache
               dispatch(clearCache());
+
+              // Clear onboarding/settings only
+              // Favorites will remain safe
+              await dispatch(clearOfflineAppData() as never);
+
+              // IMPORTANT:
+              // Do not change bootstrapReady.
+              // User will stay on the same Sync tab.
+              // Current app mein directly Explore tab par jao
 
               Alert.alert(
                 'Data Cleared',
-                'All offline data has been removed successfully.',
+                'Offline data cleared successfully. Your favorites are safe.',
               );
             } catch (error) {
               console.error('Clear offline data error:', error);
 
               Alert.alert(
                 'Unable to Clear',
-                'Something went wrong while clearing offline data. Please try again.',
+                'Something went wrong while clearing offline data.',
               );
             } finally {
               setClearing(false);
@@ -93,7 +103,6 @@ export default function SyncScreen() {
       ],
     );
   };
-
   return (
     <View
       style={{

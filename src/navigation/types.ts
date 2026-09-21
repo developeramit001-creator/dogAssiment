@@ -1,10 +1,19 @@
 export type RootStackParamList = {
+  Splash: undefined;
   Onboarding: undefined;
   Main: undefined;
-  BreedDetail: { id: string };
+
+  BreedDetail: {
+    breedId: string;
+  };
+
   Filter: undefined;
-  Gallery: { id: string };
-};
+
+  Gallery: {
+    images: string[];
+    initialIndex?: number;
+  };
+}
 export type MainTabParamList = {
   Explore: undefined;
   Favorites: undefined;

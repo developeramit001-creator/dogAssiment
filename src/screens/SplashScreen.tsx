@@ -1,5 +1,5 @@
-
 import React, { useEffect, useRef } from 'react';
+
 import {
     ActivityIndicator,
     Animated,
@@ -8,35 +8,214 @@ import {
     Text,
     View,
 } from 'react-native';
+
+import Svg, {
+    Circle,
+    Ellipse,
+    Path,
+} from 'react-native-svg';
+
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors } from '../theme/colors';
 import { theme } from '../theme/theme';
 import { useAppSelector } from '../store/hooks';
 
-const SPLASH_DOG_IMAGE =
-    'https://images.dogapi.dog/ohf04zsgh911n30j53gsn5hu9o79';
+// -----------------------------------------------------
+// Images
+// -----------------------------------------------------
 
-export default function SplashScreen() {
+const SPLASH_DOG_IMAGE =
+    'https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=900&q=90';
+
+// -----------------------------------------------------
+// Props
+// -----------------------------------------------------
+
+type SplashScreenProps = {
+    bootstrapReady: boolean;
+};
+
+// -----------------------------------------------------
+// Line Dog Illustration
+// -----------------------------------------------------
+
+function LineDogIllustration() {
+    return (
+        <Svg
+            width="190"
+            height="190"
+            viewBox="0 0 190 190"
+            fill="none"
+        >
+            {/* Outer soft circle */}
+            <Circle
+                cx="95"
+                cy="95"
+                r="88"
+                stroke="#FFFFFF"
+                strokeWidth="1.5"
+                strokeOpacity="0.6"
+                strokeDasharray="5 8"
+            />
+
+            {/* Dog head outline */}
+            <Path
+                d="
+          M57 76
+          C48 55 52 35 66 25
+          C75 18 84 24 89 38
+          C94 34 101 34 107 38
+          C113 24 125 18 134 26
+          C148 38 150 57 141 77
+          C151 89 153 108 145 124
+          C137 142 119 151 95 151
+          C71 151 53 142 45 124
+          C37 108 41 89 57 76
+        "
+                stroke="#FFFFFF"
+                strokeWidth="3"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            />
+
+            {/* Left ear */}
+            <Path
+                d="
+          M62 49
+          C45 43 35 53 39 70
+          C42 82 49 91 59 94
+        "
+                stroke="#FFFFFF"
+                strokeWidth="3"
+                strokeLinecap="round"
+            />
+
+            {/* Right ear */}
+            <Path
+                d="
+          M128 49
+          C145 43 155 53 151 70
+          C148 82 141 91 131 94
+        "
+                stroke="#FFFFFF"
+                strokeWidth="3"
+                strokeLinecap="round"
+            />
+
+            {/* Eyes */}
+            <Ellipse
+                cx="73"
+                cy="91"
+                rx="4"
+                ry="5"
+                fill="#FFFFFF"
+            />
+
+            <Ellipse
+                cx="117"
+                cy="91"
+                rx="4"
+                ry="5"
+                fill="#FFFFFF"
+            />
+
+            {/* Muzzle */}
+            <Path
+                d="
+          M76 111
+          C82 103 108 103 114 111
+          C122 123 113 137 95 137
+          C77 137 68 123 76 111
+        "
+                stroke="#FFFFFF"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            />
+
+            {/* Nose */}
+            <Path
+                d="
+          M87 113
+          C90 109 100 109 103 113
+          C105 118 100 122 95 122
+          C90 122 85 118 87 113
+        "
+                fill="#FFFFFF"
+            />
+
+            {/* Mouth */}
+            <Path
+                d="
+          M95 122
+          L95 127
+          M95 127
+          C89 132 84 130 81 127
+          M95 127
+          C101 132 106 130 109 127
+        "
+                stroke="#FFFFFF"
+                strokeWidth="2"
+                strokeLinecap="round"
+            />
+
+            {/* Face detail */}
+            <Path
+                d="
+          M95 43
+          L95 62
+          M88 56
+          L95 62
+          L102 56
+        "
+                stroke="#FFFFFF"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeOpacity="0.85"
+            />
+        </Svg>
+    );
+}
+
+// -----------------------------------------------------
+// Splash Screen
+// -----------------------------------------------------
+
+export default function SplashScreen({
+    bootstrapReady,
+}: SplashScreenProps) {
     const insets = useSafeAreaInsets();
 
-    const pulse = useRef(new Animated.Value(0.96)).current;
+    const pulse = useRef(
+        new Animated.Value(0.97),
+    ).current;
 
-    const syncing = useAppSelector(state => state.sync.syncing);
-    const progress = useAppSelector(state => state.sync.progress);
-    const error = useAppSelector(state => state.sync.error);
+    const syncing = useAppSelector(
+        state => state.sync.syncing,
+    );
+
+    const progress = useAppSelector(
+        state => state.sync.progress,
+    );
+
+    const error = useAppSelector(
+        state => state.sync.error,
+    );
 
     useEffect(() => {
         const animation = Animated.loop(
             Animated.sequence([
                 Animated.timing(pulse, {
                     toValue: 1,
-                    duration: 900,
+                    duration: 1100,
                     useNativeDriver: true,
                 }),
+
                 Animated.timing(pulse, {
-                    toValue: 0.96,
-                    duration: 900,
+                    toValue: 0.97,
+                    duration: 1100,
                     useNativeDriver: true,
                 }),
             ]),
@@ -54,6 +233,8 @@ export default function SplashScreen() {
         Math.max(0, Math.min(1, progress)) * 100,
     );
 
+    const isLoading = !bootstrapReady;
+
     return (
         <View
             style={[
@@ -64,86 +245,151 @@ export default function SplashScreen() {
                 },
             ]}
         >
-            {/* Brand */}
-            <View style={styles.topRow}>
-                <View style={styles.brandMark}>
-                    <Text style={styles.brandMarkText}>🐾</Text>
+            {/* --------------------------------------------- */}
+            {/* Header */}
+            {/* --------------------------------------------- */}
+
+            <View style={styles.header}>
+                <View style={styles.logoCircle}>
+                    <Text style={styles.logoText}>🐾</Text>
                 </View>
 
-                <Text style={styles.topLabel}>PAWBUDDY</Text>
+                <View>
+                    <Text style={styles.brandName}>
+                        PAWBUDDY
+                    </Text>
+
+                    <Text style={styles.brandSubtitle}>
+                        YOUR DOG WORLD
+                    </Text>
+                </View>
             </View>
 
-            {/* Center Content */}
+            {/* --------------------------------------------- */}
+            {/* Main Content */}
+            {/* --------------------------------------------- */}
+
             <View style={styles.centerContent}>
                 <Animated.View
                     style={[
-                        styles.imageContainer,
+                        styles.imageWrapper,
                         {
-                            transform: [{ scale: pulse }],
+                            transform: [
+                                {
+                                    scale: pulse,
+                                },
+                            ],
                         },
                     ]}
                 >
+                    {/* Dog Image */}
                     <Image
-                        source={{ uri: SPLASH_DOG_IMAGE }}
+                        source={{
+                            uri: SPLASH_DOG_IMAGE,
+                        }}
                         resizeMode="cover"
-                        style={styles.image}
+                        style={styles.dogImage}
                     />
 
-                    <View style={styles.imageBadge}>
-                        <Text style={styles.imageBadgeText}>🐶</Text>
+                    {/* Soft Image Overlay */}
+                    <View style={styles.imageOverlay} />
+
+                    {/* Line Dog Over Image */}
+                    <View style={styles.lineDogWrapper}>
+                        <LineDogIllustration />
+                    </View>
+
+                    {/* Small Badge */}
+                    <View style={styles.badge}>
+                        <Text style={styles.badgeText}>🐾</Text>
                     </View>
                 </Animated.View>
 
-                <Text style={styles.title}>
-                    Your dog world is getting ready
+                <Text style={styles.heading}>
+                    Every dog has a story.
                 </Text>
 
-                <Text style={styles.subtitle}>
-                    Preparing your breed library so you can explore
+                <Text style={styles.description}>
+                    Discover amazing breeds, save your
+                    favourites and explore your dog world
                     even when you are offline.
                 </Text>
 
-                {/* Sync Status */}
-                <View style={styles.statusRow}>
-                    <ActivityIndicator
-                        size="small"
-                        color={colors.coral}
-                    />
+                {/* ----------------------------------------- */}
+                {/* Loading / Completed State */}
+                {/* ----------------------------------------- */}
 
-                    <Text style={styles.statusText}>
-                        {syncing
-                            ? `Syncing your library ${percentage}%`
-                            : 'Loading your library'}
-                    </Text>
-                </View>
+                {isLoading ? (
+                    <>
+                        <View style={styles.statusRow}>
+                            <ActivityIndicator
+                                size="small"
+                                color={colors.coral}
+                            />
 
-                {/* Progress Bar */}
-                <View style={styles.progressTrack}>
-                    <View
-                        style={[
-                            styles.progressFill,
-                            {
-                                width: `${percentage}%`,
-                            },
-                        ]}
-                    />
-                </View>
+                            <Text style={styles.statusText}>
+                                {syncing
+                                    ? `Syncing library ${percentage}%`
+                                    : 'Preparing your library'}
+                            </Text>
+                        </View>
 
-                {/* Error / Cache Message */}
+                        <View style={styles.progressTrack}>
+                            <View
+                                style={[
+                                    styles.progressFill,
+                                    {
+                                        width: `${percentage}%`,
+                                    },
+                                ]}
+                            />
+                        </View>
+                    </>
+                ) : (
+                    <View style={styles.completedRow}>
+                        <View style={styles.checkCircle}>
+                            <Text style={styles.checkText}>✓</Text>
+                        </View>
+
+                        <View style={styles.completedContent}>
+                            <Text style={styles.completedTitle}>
+                                Your library is ready
+                            </Text>
+
+                            <Text style={styles.completedSubtitle}>
+                                Taking you to the next step...
+                            </Text>
+                        </View>
+                    </View>
+                )}
+
                 {!!error && (
                     <Text style={styles.errorText}>
-                        Using available cached data. Almost there…
+                        Using available cached data.
                     </Text>
                 )}
             </View>
 
+            {/* --------------------------------------------- */}
             {/* Footer */}
-            <Text style={styles.footerText}>
-                Made for dog lovers • PawBuddy
-            </Text>
+            {/* --------------------------------------------- */}
+
+            <View style={styles.footer}>
+                <Text style={styles.footerText}>
+                    Made with love for dog lovers
+                </Text>
+
+                <Text style={styles.footerBrand}>
+                    🐾 PawBuddy
+                </Text>
+            </View>
         </View>
     );
 }
+
+// -----------------------------------------------------
+// Styles
+// -----------------------------------------------------
 
 const styles = StyleSheet.create({
     root: {
@@ -152,98 +398,137 @@ const styles = StyleSheet.create({
         paddingHorizontal: 24,
     },
 
-    topRow: {
+    header: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 10,
+        gap: 12,
     },
 
-    brandMark: {
-        width: 42,
-        height: 42,
-        borderRadius: 21,
+    logoCircle: {
+        width: 46,
+        height: 46,
+        borderRadius: 23,
+
         alignItems: 'center',
         justifyContent: 'center',
+
         backgroundColor: colors.cream,
+        borderWidth: 1,
+        borderColor: colors.border,
     },
 
-    brandMarkText: {
-        fontSize: 23,
+    logoText: {
+        fontSize: 24,
     },
 
-    topLabel: {
+    brandName: {
         color: colors.text,
-        fontSize: 13,
-        letterSpacing: 2,
+        fontSize: 14,
+        letterSpacing: 2.5,
         fontFamily: theme.fonts.extraBold,
+    },
+
+    brandSubtitle: {
+        marginTop: 3,
+        color: colors.muted,
+        fontSize: 9,
+        letterSpacing: 1.5,
+        fontFamily: theme.fonts.semibold,
     },
 
     centerContent: {
         flex: 1,
-        justifyContent: 'center',
         alignItems: 'center',
+        justifyContent: 'center',
     },
 
-    imageContainer: {
-        width: 238,
-        height: 238,
-        borderRadius: 119,
+    imageWrapper: {
+        width: 270,
+        height: 270,
+        borderRadius: 135,
+
         overflow: 'hidden',
+
         backgroundColor: colors.cream,
-        borderWidth: 10,
+        borderWidth: 9,
         borderColor: colors.surface,
-        elevation: 8,
+
+        elevation: 10,
+
         shadowColor: colors.shadow,
-        shadowOpacity: 0.2,
-        shadowRadius: 18,
+        shadowOpacity: 0.22,
+        shadowRadius: 20,
+
         shadowOffset: {
             width: 0,
-            height: 8,
+            height: 10,
         },
     },
 
-    image: {
+    dogImage: {
         width: '100%',
         height: '100%',
     },
 
-    imageBadge: {
+    imageOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(25, 25, 25, 0.12)',
+    },
+
+    lineDogWrapper: {
+        ...StyleSheet.absoluteFillObject,
+
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+
+    badge: {
         position: 'absolute',
         right: 8,
         bottom: 8,
-        width: 54,
-        height: 54,
-        borderRadius: 27,
+
+        width: 58,
+        height: 58,
+        borderRadius: 29,
+
         alignItems: 'center',
         justifyContent: 'center',
+
         backgroundColor: colors.surface,
+        borderWidth: 4,
+        borderColor: colors.cream,
     },
 
-    imageBadgeText: {
-        fontSize: 28,
-    },
-
-    title: {
-        marginTop: 32,
-        color: colors.text,
+    badgeText: {
         fontSize: 27,
-        lineHeight: 34,
+    },
+
+    heading: {
+        marginTop: 34,
+
+        color: colors.text,
+        fontSize: 28,
+        lineHeight: 35,
+
         textAlign: 'center',
         fontFamily: theme.fonts.extraBold,
     },
 
-    subtitle: {
-        marginTop: 12,
-        maxWidth: 320,
+    description: {
+        maxWidth: 325,
+        marginTop: 13,
+
         color: colors.muted,
         fontSize: 15,
-        lineHeight: 22,
+        lineHeight: 23,
+
         textAlign: 'center',
         fontFamily: theme.fonts.regular,
     },
 
     statusRow: {
-        marginTop: 28,
+        marginTop: 30,
+
         flexDirection: 'row',
         alignItems: 'center',
         gap: 9,
@@ -259,9 +544,12 @@ const styles = StyleSheet.create({
         width: '100%',
         maxWidth: 320,
         height: 6,
-        marginTop: 14,
-        borderRadius: 3,
+
+        marginTop: 15,
+
         overflow: 'hidden',
+        borderRadius: 3,
+
         backgroundColor: colors.border,
     },
 
@@ -271,18 +559,80 @@ const styles = StyleSheet.create({
         backgroundColor: colors.coral,
     },
 
+    completedRow: {
+        marginTop: 30,
+
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+
+        paddingHorizontal: 18,
+        paddingVertical: 13,
+
+        borderRadius: 16,
+        backgroundColor: colors.surface,
+        borderWidth: 1,
+        borderColor: colors.border,
+    },
+
+    checkCircle: {
+        width: 30,
+        height: 30,
+        borderRadius: 15,
+
+        alignItems: 'center',
+        justifyContent: 'center',
+
+        backgroundColor: colors.cream,
+    },
+
+    checkText: {
+        color: colors.coral,
+        fontSize: 18,
+        fontFamily: theme.fonts.extraBold,
+    },
+
+    completedContent: {
+        flex: 1,
+    },
+
+    completedTitle: {
+        color: colors.text,
+        fontSize: 13,
+        fontFamily: theme.fonts.semibold,
+    },
+
+    completedSubtitle: {
+        marginTop: 3,
+        color: colors.muted,
+        fontSize: 11,
+        fontFamily: theme.fonts.regular,
+    },
+
     errorText: {
         marginTop: 12,
+
         color: colors.muted,
         fontSize: 12,
+
         textAlign: 'center',
         fontFamily: theme.fonts.regular,
     },
 
+    footer: {
+        alignItems: 'center',
+        gap: 5,
+    },
+
     footerText: {
         color: colors.muted,
-        fontSize: 12,
-        textAlign: 'center',
+        fontSize: 11,
         fontFamily: theme.fonts.regular,
+    },
+
+    footerBrand: {
+        color: colors.inkSoft,
+        fontSize: 12,
+        fontFamily: theme.fonts.semibold,
     },
 });
