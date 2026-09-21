@@ -29,12 +29,17 @@ import {
   RootStackParamList,
   MainTabParamList,
 } from './types';
+import { Pressable } from 'react-native';
 
 const Stack =
   createNativeStackNavigator<RootStackParamList>();
 
 const Tabs =
   createBottomTabNavigator<MainTabParamList>();
+
+// -----------------------------------------------------
+// Main Bottom Tabs
+// -----------------------------------------------------
 
 // -----------------------------------------------------
 // Main Bottom Tabs
@@ -48,19 +53,54 @@ function MainTabs() {
       screenOptions={({ route }) => ({
         headerShown: false,
 
+        // Active and inactive icon/text colors
         tabBarActiveTintColor: colors.coral,
         tabBarInactiveTintColor: colors.muted,
 
+        // Remove Android black ripple/shade
+        tabBarButton: props => (
+          <Pressable
+            {...props}
+            android_ripple={{
+              color: 'transparent',
+              borderless: true,
+            }}
+            style={props.style}
+          />
+        ),
+
+        // Bottom tab bar styling
         tabBarStyle: {
           height: 62 + insets.bottom,
+
           paddingBottom: Math.max(8, insets.bottom),
           paddingTop: 7,
 
           backgroundColor: colors.surface,
           borderTopColor: colors.border,
+
+          // Remove unwanted shadow
+          elevation: 0,
+          shadowColor: 'transparent',
+          shadowOpacity: 0,
+          shadowRadius: 0,
+          shadowOffset: {
+            width: 0,
+            height: 0,
+          },
         },
 
-        tabBarIcon: ({ color, size }) => {
+        // Consistent icon size
+        tabBarIconStyle: {
+          marginTop: 1,
+        },
+
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: '600',
+        },
+
+        tabBarIcon: ({ color }) => {
           const icons: Record<string, string> = {
             Explore: 'home',
             Favorites: 'heart',
@@ -72,7 +112,7 @@ function MainTabs() {
             <Icon
               name={icons[route.name] || 'paw'}
               color={color}
-              size={size}
+              size={22}
             />
           );
         },
