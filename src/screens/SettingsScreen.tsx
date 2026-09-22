@@ -1,70 +1,12 @@
-import React, { useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  Pressable,
-  Text,
-  View,
-} from 'react-native';
+import React from 'react';
+import { ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Card } from '../components/UI';
-import { clearAll } from '../database';
-import { clearCache } from '../store/cacheSlice';
-import { useAppDispatch } from '../store/hooks';
 import { theme } from '../theme/theme';
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
-  const dispatch = useAppDispatch();
-
-  const [clearing, setClearing] = useState(false);
-
-  const handleClearCache = () => {
-    if (clearing) {
-      return;
-    }
-
-    Alert.alert(
-      'Clear offline data?',
-      'This will permanently remove all locally stored dog breeds and groups from your device. You can download the data again when you are online.',
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Clear Data',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              setClearing(true);
-
-              // Clear local SQLite database
-              await clearAll();
-
-              // Clear Redux cache state
-              dispatch(clearCache());
-
-              Alert.alert(
-                'Cache Cleared',
-                'All offline data has been removed successfully.',
-              );
-            } catch (error) {
-              console.error('Clear offline cache error:', error);
-
-              Alert.alert(
-                'Unable to Clear',
-                'Something went wrong while clearing offline data. Please try again.',
-              );
-            } finally {
-              setClearing(false);
-            }
-          },
-        },
-      ],
-    );
-  };
 
   const InfoRow = ({
     label,
@@ -111,13 +53,18 @@ export default function SettingsScreen() {
   };
 
   return (
-    <View
+    <ScrollView
       style={{
         flex: 1,
         backgroundColor: theme.colors.bg,
+      }}
+      contentContainerStyle={{
         paddingTop: insets.top,
         paddingHorizontal: theme.spacing.md,
+        paddingBottom: 32,
       }}
+      showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
     >
       {/* HEADER */}
       <View
@@ -144,7 +91,7 @@ export default function SettingsScreen() {
             fontFamily: theme.fonts.regular,
           }}
         >
-          Manage your app preferences and offline data.
+          Manage your app preferences and application information.
         </Text>
       </View>
 
@@ -267,163 +214,6 @@ export default function SettingsScreen() {
         </Card>
       </View>
 
-      {/* OFFLINE DATA */}
-      <View
-        style={{
-          marginTop: theme.spacing.lg,
-        }}
-      >
-        <Text
-          style={{
-            marginBottom: theme.spacing.sm,
-            color: theme.colors.text,
-            ...theme.typography.h3,
-            fontFamily: theme.fonts.semibold,
-          }}
-        >
-          Offline Data
-        </Text>
-
-        <Card>
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'flex-start',
-            }}
-          >
-            <View
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: 13,
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: '#EAF5EF',
-              }}
-            >
-              <Text
-                style={{
-                  fontSize: 20,
-                }}
-              >
-                🗄️
-              </Text>
-            </View>
-
-            <View
-              style={{
-                flex: 1,
-                marginLeft: theme.spacing.sm,
-              }}
-            >
-              <Text
-                style={{
-                  color: theme.colors.text,
-                  ...theme.typography.bodySmall,
-                  fontFamily: theme.fonts.semibold,
-                }}
-              >
-                Local database storage
-              </Text>
-
-              <Text
-                style={{
-                  marginTop: 4,
-                  color: theme.colors.muted,
-                  ...theme.typography.caption,
-                  fontFamily: theme.fonts.regular,
-                  lineHeight: 18,
-                }}
-              >
-                Your downloaded dog breed and group data is stored locally on
-                your device for offline access.
-              </Text>
-            </View>
-          </View>
-
-          <View
-            style={{
-              height: 1,
-              backgroundColor: theme.colors.border ?? '#EDE7E2',
-              marginVertical: theme.spacing.md,
-            }}
-          />
-
-          <Text
-            style={{
-              color: theme.colors.muted,
-              ...theme.typography.caption,
-              fontFamily: theme.fonts.regular,
-              lineHeight: 18,
-            }}
-          >
-            Clearing offline data will remove locally saved records. Your data
-            can be downloaded again through the sync option when you are
-            connected to the internet.
-          </Text>
-
-          <Pressable
-            onPress={handleClearCache}
-            disabled={clearing}
-            style={{
-              minHeight: 52,
-              marginTop: theme.spacing.md,
-              borderRadius: 16,
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexDirection: 'row',
-              backgroundColor: clearing
-                ? '#F8DCD6'
-                : '#FFF0ED',
-              borderWidth: 1,
-              borderColor: '#F6D0C8',
-              opacity: clearing ? 0.75 : 1,
-            }}
-          >
-            {clearing ? (
-              <>
-                <ActivityIndicator
-                  size="small"
-                  color={theme.colors.danger}
-                />
-
-                <Text
-                  style={{
-                    marginLeft: 8,
-                    color: theme.colors.danger,
-                    fontFamily: theme.fonts.semibold,
-                    ...theme.typography.bodySmall,
-                  }}
-                >
-                  Clearing data...
-                </Text>
-              </>
-            ) : (
-              <>
-                <Text
-                  style={{
-                    fontSize: 17,
-                  }}
-                >
-                  🗑️
-                </Text>
-
-                <Text
-                  style={{
-                    marginLeft: 8,
-                    color: theme.colors.danger,
-                    fontFamily: theme.fonts.semibold,
-                    ...theme.typography.bodySmall,
-                  }}
-                >
-                  Clear Offline Cache
-                </Text>
-              </>
-            )}
-          </Pressable>
-        </Card>
-      </View>
-
       {/* FOOTER */}
       <View
         style={{
@@ -453,6 +243,6 @@ export default function SettingsScreen() {
           React Native CLI • Offline Ready
         </Text>
       </View>
-    </View>
+    </ScrollView>
   );
 }
