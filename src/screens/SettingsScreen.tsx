@@ -53,15 +53,23 @@ export default function SettingsScreen() {
   };
 
   return (
+
+      <View
+    style={{
+      flex: 1,
+      backgroundColor: theme.colors.bg,
+      paddingTop: insets.top,
+    }}
+  > 
     <ScrollView
       style={{
         flex: 1,
-        backgroundColor: theme.colors.bg,
+      
       }}
       contentContainerStyle={{
-        paddingTop: insets.top,
+        
         paddingHorizontal: theme.spacing.md,
-        paddingBottom: 32,
+  paddingBottom: insets.bottom + 32,
       }}
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
@@ -244,5 +252,6 @@ export default function SettingsScreen() {
         </Text>
       </View>
     </ScrollView>
+    </View>
   );
 }
