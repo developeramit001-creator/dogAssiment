@@ -1,68 +1,124 @@
-# Performance Report
+# Performance Report — TripareAI (Dog Breed Explorer)
 
-## Measurement Status
+## 1. Overview
 
-This document describes the performance checks that should be recorded before final submission. Numeric values and screenshots must be filled with measurements taken from the target Android/iOS device or emulator; this repository archive did not include profiler exports or bundle-analysis output, so no measurements are invented here.
+This report summarizes the performance checks completed for the TripareAI React Native application using the available Android build logs and the screen recording of the breed list screen.
 
-## Performance Targets
+The report separates **observed values** from values that still require controlled measurement.
 
-| Metric              |         Target from assignment | Result                             |
-| ------------------- | -----------------------------: | ---------------------------------- |
-| Cached initial load | Under 3 seconds to interactive | Measure on target device           |
-| List scrolling      |               Sustained 60 FPS | Measure during full-list scrolling |
-| Memory              |  Under 150 MB under normal use | Capture profiler measurement       |
-| Breed dataset       |      Approximately 283 records | Verify after complete sync         |
-| API pagination      |            48 records per page | Verify from API response           |
+---
 
-## Recommended Test Procedure
+## 2. Test Environment
 
-### 1. Full Dataset Load
+| Item | Result |
+|---|---|
+| Platform | Android |
+| Build type | Debug |
+| Application | TripareAI |
+| Test device type | Physical Android devices |
+| Devices detected | 2 |
+| Metro port during launch | 8082 |
+| Android build | Successful |
+| APK installation | Successful |
+| App launch | Successful |
 
-1. Clear the app's local data.
-2. Launch the app with a stable network connection.
-3. Record the time from launch until the list becomes interactive.
-4. Confirm that all available API pages are merged.
-5. Record the final cached breed count and last-sync timestamp.
+The Android build completed successfully and the application was installed and launched on two connected Android devices.
 
-### 2. Scroll FPS
+---
 
-1. Open the full breed list after synchronization.
-2. Scroll from the top to the bottom several times.
-3. Record average FPS and any visible dropped frames using the native profiler or Flipper-compatible tooling available in the development environment.
-4. Repeat while thumbnails are visible.
+## 3. Cached / Offline Initial Load
 
-### 3. Memory Usage
+| Metric | Observation |
+|---|---|
+| Test condition | Offline mode with previously cached breed data |
+| Screen tested | Breed list screen |
+| Approximate time | Around 3 seconds |
+| Measurement status | Manual observation / estimate |
+| Interpretation | Cached local data was displayed without requiring a fresh network response |
 
-1. Start a fresh app session.
-2. Capture baseline memory.
-3. Load the complete breed list.
-4. Scroll through the list and open several detail/gallery screens.
-5. Record peak memory and attach a screenshot.
+**Note:** This result represents the time required to display previously cached data in offline mode. It should not be presented as the time required for a complete fresh API sync.
 
-### 4. Bundle Analysis
+Suggested formal wording:
 
-Record the release bundle size generated for the target platform. Include:
+> The breed list screen displayed previously cached data in approximately 3 seconds while the application was in offline mode. This was a manual observation and was not measured using an automated performance tool.
 
-- JavaScript bundle size.
-- Asset size, including onboarding images.
-- Android APK/AAB size if available.
-- Build mode and command used.
+---
 
-## Results to Add Before Submission
+## 4. Breed List Scrolling Performance
 
-> Replace the following placeholders with real measurements and screenshots.
+### Test Performed
 
-- **Initial load:** `[record measured time]`
-- **List FPS:** `[record average/minimum FPS]`
-- **Peak memory:** `[record MB]`
-- **Bundle size:** `[record JS bundle and APK/AAB size]`
-- **Synced breeds:** `[record actual count]`
+- Opened the breed list screen.
+- Enabled React Native's Performance Monitor.
+- Recorded the screen while scrolling the breed list.
+- Observed the FPS overlay during scrolling.
 
-## Implementation Notes
+### Observed Result
 
-- The home screen uses a list-based rendering approach for the breed collection.
-- Search is debounced by 300 ms.
-- The cache is normalized through Redux Toolkit entity adapters.
-- API pages after the first page are fetched concurrently.
-- Images use a local cache with a maximum size of 50 MB.
-- Existing data remains visible during later synchronization instead of replacing the entire screen with a blocking loader.
+| Metric | Observed value | Status |
+|---|---:|---|
+| UI FPS | Approximately 11.8 FPS at one observed point | Needs controlled validation |
+| Dropped frames | Approximately 411 at one observed point | Needs controlled validation |
+| Scrolling smoothness | Requires further validation without recording | Not final |
+
+### Interpretation
+
+The screen recording showed a temporary low FPS reading and a high dropped-frame count. However, screen recording and the Performance Monitor overlay can add extra workload. Therefore, these values should be treated as **diagnostic observations**, not as the final production performance result.
+
+A controlled test should be performed without screen recording, preferably by observing the monitor directly and repeating the scroll test several times.
+
+---
+
+## 5. Performance Test Status
+
+| Performance area | Result | Status |
+|---|---|---|
+| Android build | Successful | Verified |
+| APK installation | Successful on 2 devices | Verified |
+| App launch | Successful | Verified |
+| Offline cached list load | Approximately 3 seconds | Manual observation |
+| Fresh network initial load | Not measured | Pending |
+| List scrolling FPS | Approximately 11.8 FPS observed once | Needs controlled validation |
+| Dropped frames | Approximately 411 observed once | Needs controlled validation |
+| Memory usage | Not recorded | Pending |
+| JavaScript bundle size | Not recorded | Pending |
+| APK size | Not recorded | Pending |
+| API pagination performance | Not measured | Pending |
+
+---
+
+## 6. Implementation / Performance Considerations
+
+The following areas should be reviewed during final performance validation:
+
+- Use list-based rendering such as `FlatList` for breed data.
+- Avoid unnecessary re-renders while scrolling.
+- Use stable keys for list items.
+- Avoid loading large images without appropriate sizing or caching.
+- Verify that API pagination does not block the initial screen.
+- Keep cached data visible while fresh data is being synchronized.
+- Test both offline cached loading and fresh online loading separately.
+
+Only measurements that are actually recorded should be added as final numeric results.
+
+---
+
+## 7. Recommended Final Validation
+
+Before submitting the final performance report:
+
+1. Disable screen recording.
+2. Keep the Performance Monitor visible.
+3. Scroll the breed list for 10–15 seconds.
+4. Repeat the test at least three times.
+5. Record the approximate UI FPS and whether visible lag occurs.
+6. Record memory usage separately.
+7. Measure fresh online loading separately from cached offline loading.
+
+---
+
+## 8. Conclusion
+
+The Android debug build was successfully built, installed, and launched on two devices. The offline cached breed list was observed to appear in approximately 3 seconds. During the recorded scrolling test, a low UI FPS value of approximately 11.8 FPS and approximately 411 dropped frames were observed at one point.
+
+Because the scrolling result was collected during screen recording and with the Performance Monitor overlay enabled, it requires controlled re-testing before being treated as a final performance benchmark.
