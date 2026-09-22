@@ -1,14 +1,10 @@
-
-import React, {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   Animated,
   FlatList,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   RefreshControl,
   Text,
@@ -25,20 +21,11 @@ import { theme } from '../theme/theme';
 import FilterBottomSheet from '../components/FilterBottomSheet';
 import { setFilters } from '../store/appSlice';
 
-import {
-  useAppDispatch,
-  useAppSelector,
-} from '../store/hooks';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
 
-import {
-  selectAllBreeds,
-  selectAllGroups,
-} from '../store/cacheSlice';
+import { selectAllBreeds, selectAllGroups } from '../store/cacheSlice';
 
-import {
-  toggleFavorite,
-  persistFavorites,
-} from '../store/appSlice';
+import { toggleFavorite, persistFavorites } from '../store/appSlice';
 
 import { syncAll } from '../store/syncService';
 
@@ -50,8 +37,7 @@ import ShimmerPlaceholder from '../components/ShimmerPlaceholder';
 import { Breed } from '../types/dog';
 import { sizeBand } from '../utils/format';
 
-type NavigationProp =
-  NativeStackNavigationProp<RootStackParamList>;
+type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 type GroupedItem =
   | {
@@ -75,35 +61,19 @@ export default function HomeScreen() {
   const breeds = useAppSelector(selectAllBreeds);
   const groups = useAppSelector(selectAllGroups);
 
-  const { favorites, filters } = useAppSelector(
-    state => state.app,
-  );
+  const { favorites, filters } = useAppSelector(state => state.app);
 
-  const { online, syncing, error } = useAppSelector(
-    state => state.sync,
-  );
+  const { online, syncing, error } = useAppSelector(state => state.sync);
 
   const [q, setQ] = useState('');
   const [debounced, setDebounced] = useState('');
   const [refreshing, setRefreshing] = useState(false);
 
-
-
-
-
   // Filter State start :------------
 
+  const [filterSheetVisible, setFilterSheetVisible] = useState(false);
 
-  const [filterSheetVisible, setFilterSheetVisible] =
-    useState(false);
-
-
-
-
-
-  const currentFilters = useAppSelector(
-    state => state.app.filters,
-  );
+  const currentFilters = useAppSelector(state => state.app.filters);
   // Filter State end :------------
 
   // First sync: skeleton only.
@@ -112,9 +82,7 @@ export default function HomeScreen() {
   const isSyncing = refreshing || syncing;
   const showSyncProgress = hasLoadedData && isSyncing;
 
-  const progressAnimation = useRef(
-    new Animated.Value(0),
-  ).current;
+  const progressAnimation = useRef(new Animated.Value(0)).current;
 
   const progressTranslateX = progressAnimation.interpolate({
     inputRange: [0, 1],
@@ -154,12 +122,7 @@ export default function HomeScreen() {
   }, [q]);
 
   const groupMap = useMemo(() => {
-    return new Map(
-      groups.map(group => [
-        group.id,
-        group.attributes.name,
-      ]),
-    );
+    return new Map(groups.map(group => [group.id, group.attributes.name]));
   }, [groups]);
 
   const filtered = useMemo(() => {
@@ -173,10 +136,7 @@ export default function HomeScreen() {
         .join(' ')
         .toLowerCase();
 
-      if (
-        debounced &&
-        !searchableText.includes(debounced)
-      ) {
+      if (debounced && !searchableText.includes(debounced)) {
         return false;
       }
 
@@ -200,29 +160,22 @@ export default function HomeScreen() {
 
       if (
         filters.coats.length > 0 &&
-        !filters.coats.includes(
-          attributes.coat?.length || '',
-        )
+        !filters.coats.includes(attributes.coat?.length || '')
       ) {
         return false;
       }
 
       if (
         filters.hypoallergenic !== null &&
-        attributes.hypoallergenic !==
-        filters.hypoallergenic
+        attributes.hypoallergenic !== filters.hypoallergenic
       ) {
         return false;
       }
 
       if (filters.traitKey) {
-        const traitValue =
-          attributes.traits?.[filters.traitKey];
+        const traitValue = attributes.traits?.[filters.traitKey];
 
-        if (
-          typeof traitValue !== 'number' ||
-          traitValue < filters.traitMin
-        ) {
+        if (typeof traitValue !== 'number' || traitValue < filters.traitMin) {
           return false;
         }
       }
@@ -236,9 +189,7 @@ export default function HomeScreen() {
 
     filtered.forEach(breed => {
       const groupName =
-        groupMap.get(
-          breed.relationships?.group?.data?.id || '',
-        ) || 'Other';
+        groupMap.get(breed.relationships?.group?.data?.id || '') || 'Other';
 
       if (!groupedMap.has(groupName)) {
         groupedMap.set(groupName, []);
@@ -247,30 +198,26 @@ export default function HomeScreen() {
       groupedMap.get(groupName)!.push(breed);
     });
 
-    return Array.from(groupedMap.entries()).flatMap(
-      ([group, items]) => [
-        {
-          type: 'header' as const,
-          key: `header-${group}`,
-          group,
-        },
-        ...items.map(breed => ({
-          type: 'breed' as const,
-          key: breed.id,
-          breed,
-          group,
-        })),
-      ],
-    );
+    return Array.from(groupedMap.entries()).flatMap(([group, items]) => [
+      {
+        type: 'header' as const,
+        key: `header-${group}`,
+        group,
+      },
+      ...items.map(breed => ({
+        type: 'breed' as const,
+        key: breed.id,
+        breed,
+        group,
+      })),
+    ]);
   }, [filtered, groupMap]);
 
   const handleFavorite = (id: string) => {
     dispatch(toggleFavorite(id));
 
     const nextFavorites = favorites.includes(id)
-      ? favorites.filter(
-        favoriteId => favoriteId !== id,
-      )
+      ? favorites.filter(favoriteId => favoriteId !== id)
       : [...favorites, id];
 
     dispatch(persistFavorites(nextFavorites) as never);
@@ -300,7 +247,6 @@ export default function HomeScreen() {
     nav.navigate('BreedDetail', { id });
   };
 
-
   const activeFilterCount =
     currentFilters.groups.length +
     currentFilters.sizes.length +
@@ -309,15 +255,16 @@ export default function HomeScreen() {
     (currentFilters.traitKey !== null ? 1 : 0);
 
   const hasActiveFilters = activeFilterCount > 0;
-   
 
   return (
-    <View
+    <KeyboardAvoidingView
       style={{
         flex: 1,
         backgroundColor: theme.colors.bg,
         paddingTop: insets.top,
       }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
     >
       {showSyncProgress && (
         <View
@@ -411,11 +358,7 @@ export default function HomeScreen() {
           <Icon
             name={online ? 'wifi' : 'offline'}
             size={17}
-            color={
-              online
-                ? theme.colors.sage
-                : theme.colors.danger
-            }
+            color={online ? theme.colors.sage : theme.colors.danger}
           />
         </View>
       </View>
@@ -500,11 +443,7 @@ export default function HomeScreen() {
               justifyContent: 'center',
             }}
           >
-            <Icon
-              name="info"
-              size={17}
-              color={theme.colors.coralDark}
-            />
+            <Icon name="info" size={17} color={theme.colors.coralDark} />
           </View>
 
           {/* Error Message */}
@@ -567,11 +506,7 @@ export default function HomeScreen() {
           gap: theme.spacing.sm,
         }}
       >
-        <Icon
-          name="search"
-          size={19}
-          color={theme.colors.muted}
-        />
+        <Icon name="search" size={19} color={theme.colors.muted} />
 
         <TextInput
           value={q}
@@ -598,15 +533,10 @@ export default function HomeScreen() {
             accessibilityRole="button"
             accessibilityLabel="Clear search"
           >
-            <Icon
-              name="close"
-              size={19}
-              color={theme.colors.muted}
-            />
+            <Icon name="close" size={19} color={theme.colors.muted} />
           </Pressable>
         )}
       </View>
-
 
       <View
         style={{
@@ -615,13 +545,15 @@ export default function HomeScreen() {
           flexDirection: 'row',
           justifyContent: 'space-between',
           alignItems: 'center',
-        }}>
+        }}
+      >
         <View
           style={{
             flexDirection: 'row',
             alignItems: 'center',
             gap: theme.spacing.sm,
-          }}>
+          }}
+        >
           <Pressable
             onPress={() => setFilterSheetVisible(true)}
             accessibilityRole="button"
@@ -644,15 +576,12 @@ export default function HomeScreen() {
               alignItems: 'center',
               justifyContent: 'center',
               opacity: pressed ? 0.7 : 1,
-            })}>
+            })}
+          >
             <Icon
               name="filter"
               size={20}
-              color={
-                hasActiveFilters
-                  ? theme.colors.white
-                  : theme.colors.text
-              }
+              color={hasActiveFilters ? theme.colors.white : theme.colors.text}
               strokeWidth={2.2}
             />
 
@@ -671,14 +600,16 @@ export default function HomeScreen() {
                   borderColor: theme.colors.bg,
                   alignItems: 'center',
                   justifyContent: 'center',
-                }}>
+                }}
+              >
                 <Text
                   style={{
                     fontSize: 10,
                     fontFamily: theme.fonts.bold,
                     color: theme.colors.white,
                     lineHeight: 12,
-                  }}>
+                  }}
+                >
                   {activeFilterCount}
                 </Text>
               </View>
@@ -697,7 +628,8 @@ export default function HomeScreen() {
                 borderWidth: 1,
                 borderColor: theme.colors.peach,
                 gap: 5,
-              }}>
+              }}
+            >
               <Icon
                 name="check"
                 size={14}
@@ -710,7 +642,8 @@ export default function HomeScreen() {
                   ...theme.typography.caption,
                   fontFamily: theme.fonts.semibold,
                   color: theme.colors.coralDark,
-                }}>
+                }}
+              >
                 Filters active
               </Text>
             </View>
@@ -722,7 +655,8 @@ export default function HomeScreen() {
             ...theme.typography.caption,
             fontFamily: theme.fonts.regular,
             color: theme.colors.muted,
-          }}>
+          }}
+        >
           {filtered.length} results
         </Text>
       </View>
@@ -754,6 +688,7 @@ export default function HomeScreen() {
           windowSize={7}
           removeClippedSubviews
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
           showsVerticalScrollIndicator={false}
           renderItem={({ item }) => {
             if (item.type === 'header') {
@@ -778,15 +713,9 @@ export default function HomeScreen() {
               <BreedCard
                 breed={item.breed}
                 group={item.group}
-                favorite={favorites.includes(
-                  item.breed.id,
-                )}
-                onFavorite={() =>
-                  handleFavorite(item.breed.id)
-                }
-                onPress={() =>
-                  openBreedDetail(item.breed.id)
-                }
+                favorite={favorites.includes(item.breed.id)}
+                onFavorite={() => handleFavorite(item.breed.id)}
+                onPress={() => openBreedDetail(item.breed.id)}
               />
             );
           }}
@@ -813,11 +742,7 @@ export default function HomeScreen() {
                 paddingHorizontal: theme.spacing.xl,
               }}
             >
-              <Icon
-                name="paw"
-                size={42}
-                color={theme.colors.peach}
-              />
+              <Icon name="paw" size={42} color={theme.colors.peach} />
 
               <Text
                 style={{
@@ -848,8 +773,6 @@ export default function HomeScreen() {
         />
       )}
 
-
-
       <FilterBottomSheet
         visible={filterSheetVisible}
         onClose={() => setFilterSheetVisible(false)}
@@ -859,6 +782,6 @@ export default function HomeScreen() {
           dispatch(setFilters(filters));
         }}
       />
-    </View>
+    </KeyboardAvoidingView>
   );
 }
